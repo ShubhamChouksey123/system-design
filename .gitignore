@@ -1,0 +1,23 @@
+# --- macOS ---
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# --- Editors / IDEs ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# --- Claude Code (machine-local settings only; keep shared settings.json) ---
+.claude/settings.local.json
+
+# --- Project ---
+# Copyrighted source book — kept locally, not committed to the repo.
+docs/*.pdf
+
+# Personal scratchpad / prompt buffer (see CLAUDE.md) — not a deliverable.
+tmp.md
