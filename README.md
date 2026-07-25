@@ -1,27 +1,16 @@
-# System Design Interview — Concept Resources
+# System Design Interview Prep
 
-Interview-prep resources for **Senior Software Engineer** roles at product-based companies.
-Each concept is distilled from *System Design Interview – An Insider's Guide* by **Alex Xu**, with added frameworks, cheat sheets, worked examples, and practice problems.
+Interview-prep resources for **Senior Software Engineer** roles at product-based companies. Each concept is distilled from *System Design Interview – An Insider's Guide* by **Alex Xu**, with added frameworks, cheat sheets, worked examples, and practice problems.
 
-## Concepts
+## Contents
 
-| # | Concept | Status |
-|---|---------|--------|
-| 01 | [Back-of-the-Envelope Estimation](./01-envelope-estimation/back-of-the-envelope-estimation.md) | ✅ Done |
-| 01 | ↳ [Worked Examples](./01-envelope-estimation/back-of-the-envelope-examples.md) | ✅ Done |
-| 02 | [System Design Interview Framework](./02-framework/system-design-interview-framework.md) | ✅ Done |
-
-## Structure
-
-Each concept lives in its own numbered folder (`NN-topic/`) at the repo root. A folder holds the main concept doc and any companions (worked examples, exercises). This index is the entry point — add a row for every new concept.
+- **[`concepts/`](./concepts/README.md)** — the study resources, one numbered folder per topic (fundamentals, estimation, interview framework, …). See the [concept index](./concepts/README.md) for the full list.
+- **[`practice/`](./practice/README.md)** — mock-interview log and prep playbook: a scored progress tracker, per-session transcripts/feedback, and the [8-step answer framework](./practice/answer-framework.md) to run in the room.
 
 ## How to use these
 
-- Read the concept top-to-bottom once for understanding.
+- Read a concept top-to-bottom once for understanding.
 - Use the **cheat sheet** and **one-paragraph summary** sections for quick revision before an interview.
 - Attempt the **practice problems** without looking at the solution sketches first.
-- Run the **framework**'s in-the-room checklist as a dry-run before mock interviews.
-
-## Practice
-
-Mock interview sessions and progress tracking live in [`practice/`](./practice/README.md) — one folder per session (transcript, feedback, takeaways) plus a log of recurring themes to drill.
+- Before a mock, dry-run the [answer framework](./practice/answer-framework.md) and the interview framework's in-the-room checklist.
+- After a mock, log it in the [practice tracker](./practice/README.md) and promote repeated feedback into the recurring-themes list.

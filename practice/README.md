@@ -16,7 +16,7 @@ Scores are **/10** across the mock platform's five axes. Verdict: ✅ Pass (≥ 
 |---|---------|------|---------|:----:|:------:|:------------:|:------------------:|:-----:|:-------:|
 | [01](01-session/script.md) | URL shortener (bit.ly / TinyURL) | Read-heavy KV store + analytics | ⚠️ Borderline | 6.0 | 6.0 | 6.5 | 5.5 | 5.5 | **5.9** |
 
-**Related concepts**: [Back-of-the-Envelope Estimation](../concepts/01-envelope-estimation/back-of-the-envelope-estimation.md) (01) · [Interview Framework](../concepts/02-framework/system-design-interview-framework.md) (01) · _Consistent Hashing — concept doc TODO_ (01)
+**Related concepts**: [Back-of-the-Envelope Estimation](../concepts/01-envelope-estimation/back-of-the-envelope-estimation.md) (01) · [Interview Framework](../concepts/02-framework/system-design-interview-framework.md) (01) · [Load Balancing & Consistent Hashing](../concepts/00-fundamentals/load-balancing-and-consistent-hashing.md) (01)
 
 ---
 
