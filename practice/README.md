@@ -69,7 +69,7 @@ Grouped by the axis interviewers score, weakest axis first. Session tags like `[
 ### Design Skills — `6.0`
 - **Go deep on key generation** — compare hashing (collision handling), base62 of a counter, pre-generated key pools, and the **security implication of predictable IDs**. `[S01]`
 - **Design the data model for the use cases** — add analytics fields (click count, user agent, referrer, timestamp) when analytics is a requirement. `[S01]`
-- Know **cache eviction/invalidation**: LRU/LFU, TTL, and how expired URLs leave the cache. `[S01]`
+- Know **cache eviction/invalidation**: LRU/LFU, TTL, and how expired URLs leave the cache. `[S01]` → [caching](../concepts/00-fundamentals/caching.md)
 
 ### Problem Solving — `6.5` (strongest)
 - Keep leading with estimation and async-decoupling instincts — both landed well. `[S01]`
