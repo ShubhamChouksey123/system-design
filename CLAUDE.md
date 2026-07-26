@@ -13,8 +13,12 @@ All concepts are distilled from *System Design Interview – An Insider's Guide*
 ```
 README.md            landing page → points into concepts/ and practice/ (no concept table)
 concepts/            the study resources
-  README.md          the single concept index (add every new concept here)
-  NN-topic/          one folder per concept (00-fundamentals/, 01-envelope-estimation/, 02-framework/)
+  README.md          the single concept index (add every new file here)
+  NN-section/        ordered section folder; holds one OR MORE concept files
+                       00-fundamentals/ (basics, databases-*, message-queue, apache-kafka,
+                         load-balancing-and-consistent-hashing, monolithic-vs-microservices)
+                       01-envelope-estimation/  02-framework/
+  GUIDELINES.md      authoring rules (line cap, structure, conventions)
 practice/            mock-interview log & prep playbook
   README.md          progress tracker (scored session table + recurring themes)
   answer-framework.md the 8-step answer playbook to run in the room
@@ -29,13 +33,15 @@ The user **reorganizes freely** (renames/moves folders, flattens directories, re
 `concepts/README.md` is the **single** concept index — add a row (with `↳` sub-rows for companions) for every new concept, using links relative to `concepts/` (e.g. `./01-envelope-estimation/...`). The root `README.md` is a thin landing page that links *into* `concepts/` and `practice/`; it does **not** duplicate the concept table, so leave it alone when adding concepts. Verify links resolve after any move.
 
 ### Naming
-Each concept is a **folder**, not a loose file, prefixed with a zero-padded number that sets order (`01-...`, `02-...`). Files *inside* a folder use descriptive kebab-case names **without** the number prefix — e.g. `concepts/01-envelope-estimation/back-of-the-envelope-estimation.md` and its companion `back-of-the-envelope-examples.md`.
+Numbered folders (`00-`, `01-`, `02-`) are **ordered sections, not single concepts** — a section may hold **several sibling concept files** (e.g. `00-fundamentals/` currently holds 7). Files use descriptive kebab-case names **without** the number prefix (e.g. `apache-kafka.md`). **Reading order is the row order in `concepts/README.md`, not the filesystem.** Companion files (e.g. `back-of-the-envelope-examples.md`, `databases-scaling.md`) sit beside their primary concept and appear as `↳` sub-rows in the index.
 
 ## Document conventions (match these when adding content)
 
 **Authoring rules live in [`concepts/GUIDELINES.md`](concepts/GUIDELINES.md)** — read it before creating a concept file. Key rule: **concept docs must be < 120 lines** (`wc -l` to check); split into companion files when a topic runs long. **Worked-examples and dense reference docs are exempt** — keep examples fully descriptive. The conventions below summarize the rest.
 
-**Concept doc** (templates: `concepts/01-envelope-estimation/back-of-the-envelope-estimation.md`, `concepts/02-framework/system-design-interview-framework.md`): start with the `# Title` and go straight into content — **no `Reference`/`Goal`/`Prerequisite` header block** (concepts are numbered, so reading in order covers prerequisites). Then numbered sections progressing from *what it is / why interviewers ask* → core reference tables/framework → a worked example → cheat sheet or in-the-room checklist → interview tips (Do/Don't) → practice problems (with a `<details>` collapsible for solution sketches, where applicable) → a one-paragraph revision summary.
+**Concept doc:** start with the `# Title` (a `---` divider under it is fine) and go straight into content — **no `Reference`/`Goal`/`Prerequisite` header block** (concepts are numbered, so reading in order covers prerequisites). Use numbered sections built from **tables + short prose**, and **always close with a `## One-Paragraph Summary`**. Two depths exist:
+- **Full concept** (templates: `back-of-the-envelope-estimation.md`, `system-design-interview-framework.md`): *what it is / why asked* → reference tables/framework → worked example → cheat sheet or in-the-room checklist → tips (Do/Don't) → practice problems (`<details>` for solutions) → summary.
+- **Leaner reference concept** (most of `00-fundamentals/`, e.g. `apache-kafka.md`, `databases-*`): what it is → a few tables → real-world examples/tech → when-to-use trade-offs → summary. Drop practice problems/tips when they don't fit.
 
 **Worked-examples doc** (template: `concepts/01-envelope-estimation/back-of-the-envelope-examples.md`): each example is `assumptions table → step-by-step math (in a code block) → **Takeaway** tying the number to an architectural decision`. End with a cross-example "patterns" section.
 

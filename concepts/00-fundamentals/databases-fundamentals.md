@@ -17,6 +17,7 @@ A **database** is an organized, persistent store of data; a **DBMS** (Database M
 | **NewSQL** | SQL + ACID at NoSQL scale | Google Spanner, CockroachDB | Relational guarantees that scale horizontally |
 
 **NoSQL families:**
+
 | Family | Shape | Examples |
 |---|---|---|
 | **Key-value** | `key → value` | Redis, DynamoDB |

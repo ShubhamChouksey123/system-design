@@ -18,6 +18,7 @@ The **cloud** is on-demand access to computing resources (servers, storage, DBs,
 **Deployment models:** **Public** (shared, cheapest, elastic) · **Private** (dedicated, most control, costly) · **Hybrid** (sensitive data private, burst to public) · **Multi-cloud** (avoids lock-in, more complex).
 
 **Service models:**
+
 | Model | You manage | Example |
 |---|---|---|
 | **IaaS** | OS, runtime, app | EC2, Compute Engine |

@@ -11,6 +11,7 @@ A **load balancer (LB)** sits between clients and a pool of servers and distribu
 - **Hides the fleet** — clients see one endpoint, not individual servers.
 
 **Types:**
+
 | Type | Operates at | Routes on | Notes |
 |---|---|---|---|
 | **L4 (transport)** | TCP/UDP | IP + port | Fast, protocol-agnostic; can't see HTTP |
@@ -20,6 +21,7 @@ A **load balancer (LB)** sits between clients and a pool of servers and distribu
 Software LBs (NGINX, HAProxy, cloud ELB/ALB) are the norm today.
 
 **Algorithms:**
+
 | Algorithm | Picks | Best when |
 |---|---|---|
 | **Round robin** | Next in rotation | Servers roughly equal |

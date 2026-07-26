@@ -17,6 +17,7 @@
 ## 1. Storage — Photo-Sharing App (1 million users)
 
 ### Assumptions
+
 | Assumption | Value |
 |---|---|
 | Total users | 1,000,000 |
@@ -43,6 +44,7 @@ Even a "small" 1M-user app produces **~0.7 PB/year** of photos (~2 PB replicated
 ## 2. Bandwidth — Video Streaming App (1 million DAU)
 
 ### Assumptions
+
 | Assumption | Value |
 |---|---|
 | DAU | 1,000,000 |
@@ -69,6 +71,7 @@ Cross-check via concurrency: `1M watch-hours/day ÷ 24 h ≈ 41,700 concurrent s
 ## 3. Compute — Number of Servers (social media, 10 million DAU)
 
 ### Assumptions
+
 | Assumption | Value |
 |---|---|
 | DAU | 10,000,000 |
@@ -94,6 +97,7 @@ You need on the order of **~12 servers to handle peak, ~24 with redundancy** —
 ## 4. Storage — All Tweets for 1 Year
 
 ### Assumptions (Twitter-scale, from the concept doc)
+
 | Assumption | Value |
 |---|---|
 | DAU | 150,000,000 |
@@ -125,6 +129,7 @@ Total/year (×3)  ≈ 33 PB/year
 ## 5. Bandwidth — YouTube Video Streaming (global)
 
 ### Assumptions
+
 | Assumption | Value |
 |---|---|
 | Watch time (YouTube's own public stat) | ~1 billion hours/day |
@@ -149,6 +154,7 @@ Peak (~2×)          ≈ 400+ Tbps
 ## 6. Storage — All Photos Uploaded to Facebook in 1 Year
 
 ### Assumptions
+
 | Assumption | Value |
 |---|---|
 | DAU | 2,000,000,000 (2B) |

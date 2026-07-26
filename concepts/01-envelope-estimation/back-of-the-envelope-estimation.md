@@ -109,6 +109,7 @@ Do these in order. Announce each assumption to the interviewer as you go.
 ### Core formulas
 
 **QPS (Queries Per Second):**
+
 ```
 Average QPS = (DAU × actions per user per day) / 86,400
             (there are 86,400 seconds in a day ≈ 10^5)
@@ -116,12 +117,14 @@ Peak QPS    ≈ 2 × Average QPS      (rule of thumb; adjust per product)
 ```
 
 **Storage:**
+
 ```
 Daily storage = writes per day × average size per write
 Total storage = Daily storage × retention period (days) × replication factor
 ```
 
 **Bandwidth:**
+
 ```
 Bandwidth = QPS × average payload size    (bytes per second)
 ```

@@ -56,7 +56,14 @@ Concepts are **numbered so readers go in order.** Do **not** add `Reference`, `G
 - **Cross-link** related concepts with relative paths.
 - Source is *System Design Interview* by Alex Xu — write from the relevant chapter (no in-file citation needed); the PDF is not readable in-repo, so flag figures the user may want to verify.
 
-## 7. Before you save — checklist
+## 7. Markdown formatting (so it renders)
+
+Block elements need a **blank line before and after** them, or many renderers (incl. GitHub) treat them as plain text:
+- **Tables** — must have a blank line before the header row. A table glued to the preceding prose line silently fails to render as a table. (Most common mistake.)
+- **Code fences** (```` ``` ````), **lists**, and **headings** — same rule: blank line before and after.
+- Keep table rows contiguous — no blank line *between* rows.
+
+## 8. Before you save — checklist
 
 ```
 □ Under 120 lines — concept docs only (reference/example docs exempt, §1)
@@ -64,6 +71,7 @@ Concepts are **numbered so readers go in order.** Do **not** add `Reference`, `G
 □ No Reference / Goal / Prerequisite header block (ordering covers prerequisites)
 □ Ends with a one-paragraph revision summary
 □ Tables/code blocks preferred over prose
+□ Blank line before & after every table, list, and code block (§7)
 □ Every number ties to a decision
 □ Names real-world examples / technologies (e.g. Kafka, SQS, NGINX)
 □ Added a row to concepts/README.md
