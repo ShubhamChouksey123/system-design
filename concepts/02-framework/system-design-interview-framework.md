@@ -1,8 +1,5 @@
 # A Framework for System Design Interviews
 
-> **Reference:** *System Design Interview* by Alex Xu, Chapter 3.
-> **Goal:** A repeatable 4-step process to drive any system design interview — so you spend energy on the design, not on what to do next.
-
 ---
 
 ## 1. What the Interview Actually Tests

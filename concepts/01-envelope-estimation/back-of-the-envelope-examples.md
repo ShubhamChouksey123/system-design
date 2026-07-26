@@ -1,6 +1,6 @@
 # Back-of-the-Envelope Estimation — Worked Examples
 
-> Companion to [01-back-of-the-envelope-estimation.md](./01-back-of-the-envelope-estimation.md).
+> Companion to [back-of-the-envelope-estimation.md](./back-of-the-envelope-estimation.md).
 > Each example follows the framework: **state assumptions → apply formula → conclude with an architectural takeaway.**
 
 **Reminders you'll use throughout:**

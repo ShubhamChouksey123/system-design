@@ -1,9 +1,5 @@
 # Load Balancing & Consistent Hashing
 
-> **Reference:** *System Design Interview* by Alex Xu — load balancing (Ch 1), consistent hashing (Ch 5).
-> **Goal:** The two core techniques for distributing work across machines — **load balancing** spreads *requests* across stateless servers; **consistent hashing** spreads *data/keys* across stateful nodes with minimal reshuffling when the fleet changes.
-> **Prerequisite:** [horizontal scaling](./basics.md#3-scalability) — both exist because you scaled *out*.
-
 ---
 
 ## Part A — Load Balancing

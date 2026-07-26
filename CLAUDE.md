@@ -33,9 +33,9 @@ Each concept is a **folder**, not a loose file, prefixed with a zero-padded numb
 
 ## Document conventions (match these when adding content)
 
-**Authoring rules live in [`concepts/GUIDELINES.md`](concepts/GUIDELINES.md)** — read it before creating a concept file. Hard rule: **every file under `concepts/` must be < 120 lines** (`wc -l` to check); split into companion files when a topic runs long. The conventions below summarize the rest.
+**Authoring rules live in [`concepts/GUIDELINES.md`](concepts/GUIDELINES.md)** — read it before creating a concept file. Key rule: **concept docs must be < 120 lines** (`wc -l` to check); split into companion files when a topic runs long. **Worked-examples and dense reference docs are exempt** — keep examples fully descriptive. The conventions below summarize the rest.
 
-**Concept doc** (templates: `concepts/01-envelope-estimation/back-of-the-envelope-estimation.md`, `concepts/02-framework/system-design-interview-framework.md`): a `>` blockquote header citing the book chapter + goal; numbered sections progressing from *what it is / why interviewers ask* → core reference tables/framework → a worked example → cheat sheet or in-the-room checklist → interview tips (Do/Don't) → practice problems (with a `<details>` collapsible for solution sketches, where applicable) → a one-paragraph revision summary.
+**Concept doc** (templates: `concepts/01-envelope-estimation/back-of-the-envelope-estimation.md`, `concepts/02-framework/system-design-interview-framework.md`): start with the `# Title` and go straight into content — **no `Reference`/`Goal`/`Prerequisite` header block** (concepts are numbered, so reading in order covers prerequisites). Then numbered sections progressing from *what it is / why interviewers ask* → core reference tables/framework → a worked example → cheat sheet or in-the-room checklist → interview tips (Do/Don't) → practice problems (with a `<details>` collapsible for solution sketches, where applicable) → a one-paragraph revision summary.
 
 **Worked-examples doc** (template: `concepts/01-envelope-estimation/back-of-the-envelope-examples.md`): each example is `assumptions table → step-by-step math (in a code block) → **Takeaway** tying the number to an architectural decision`. End with a cross-example "patterns" section.
 

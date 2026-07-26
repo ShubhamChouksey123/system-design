@@ -1,8 +1,5 @@
 # System Design Fundamentals — Basics
 
-> **Reference:** Foundational primer; the scalability section draws on *System Design Interview* by Alex Xu, Chapter 1.
-> **Goal:** Establish the shared vocabulary — cloud, APIs, scalability — that every later concept assumes.
-
 ---
 
 ## 1. Cloud Computing

@@ -4,15 +4,21 @@ Rules for every file created inside `concepts/`. Keep docs short, focused, and r
 
 ---
 
-## 1. File size — hard cap **< 120 lines**
+## 1. File size — **concept docs < 120 lines**
 
-Every concept file MUST be **under 120 lines**. Short docs are easier to revise before an interview and force tight, high-signal writing.
+A **concept doc** (a topic you read top-to-bottom to learn it) MUST be **under 120 lines**. Short docs are easier to revise before an interview and force tight, high-signal writing.
 
 - If a topic needs more, **split it into companion files** in the same folder (e.g. `basics.md` + `load-balancing-and-consistent-hashing.md`), each under the cap.
 - Prefer **tables and code blocks** over prose paragraphs — they carry more information per line.
 - Cut throat-clearing and repetition; every line should earn its place.
 
-> Check before saving: `wc -l concepts/**/your-file.md` → must be `< 120`.
+> Check before saving: `wc -l concepts/**/your-file.md` → concept docs must be `< 120`.
+
+**Exempt from the cap — reference & example docs.** Files you *dip into* rather than read start-to-finish are exempt, because their length scales with an intentional list of independent items, not with padding:
+- **Worked-examples docs** — each example is self-contained; keep them **fully descriptive** (assumptions table → math → takeaway). More examples = more lines, and that's fine.
+- **Dense reference docs** — big lookup tables (e.g. the estimation reference tables).
+
+The exemption is not a license to pad: each *item* stays tight, and unrelated topics still go in separate files (§2).
 
 ## 2. One concept per file
 
@@ -26,8 +32,10 @@ A file covers a single, coherent topic. If you're using "and" to join two unrela
 
 ## 4. Required structure
 
+Concepts are **numbered so readers go in order.** Do **not** add `Reference`, `Goal`, or `Prerequisite` header blocks — a reader going in order has already covered the prerequisites, and the title states the topic. Start with the `# Title` and go straight into the content.
+
 **Concept doc:**
-1. `>` blockquote header — cite the book chapter + a one-line goal.
+1. `# Title`, then the content (a `---` divider under the title is fine).
 2. Numbered sections: *what it is / why it's asked* → core reference tables → a worked example → cheat sheet or in-the-room checklist → tips (Do/Don't) → practice problems (`<details>` for solutions, where useful).
 3. A **one-paragraph revision summary** to close.
 
@@ -44,22 +52,24 @@ A file covers a single, coherent topic. If you're using "and" to join two unrela
 
 - Audience: a senior engineer prepping for interviews.
 - **Every number must tie to an architectural consequence** (shard vs single DB, CDN vs origin, blob store vs filesystem). A figure with no decision attached is incomplete.
+- **Name real-world examples / technologies.** Every concept should point to concrete systems that implement it — e.g. message queue → *Apache Kafka, RabbitMQ, AWS SQS/SNS*; load balancer → *NGINX, HAProxy, AWS ELB/ALB*. A short table (`Technology | Type | Notes`) is ideal. It grounds the abstraction in tools interviewers expect you to name.
 - **Cross-link** related concepts with relative paths.
-- Source is *System Design Interview* by Alex Xu — write from the referenced chapter; the PDF is not readable in-repo, so flag figures the user may want to verify.
+- Source is *System Design Interview* by Alex Xu — write from the relevant chapter (no in-file citation needed); the PDF is not readable in-repo, so flag figures the user may want to verify.
 
 ## 7. Before you save — checklist
 
 ```
-□ Under 120 lines (wc -l)
+□ Under 120 lines — concept docs only (reference/example docs exempt, §1)
 □ Single coherent concept (split if not)
-□ Blockquote header (chapter + goal) present
+□ No Reference / Goal / Prerequisite header block (ordering covers prerequisites)
 □ Ends with a one-paragraph revision summary
 □ Tables/code blocks preferred over prose
 □ Every number ties to a decision
+□ Names real-world examples / technologies (e.g. Kafka, SQS, NGINX)
 □ Added a row to concepts/README.md
 □ Relative cross-links resolve
 ```
 
 ---
 
-> **Note:** files created before this rule exceed 120 lines (`basics.md`, both estimation docs, the framework doc). They're **split candidates** — refactor into companions when next touched; don't grow them further.
+> **Note:** the estimation **concept** doc (`back-of-the-envelope-estimation.md`, 262 lines) still exceeds the cap and is a **split candidate** — divide into the concept doc + a reference-tables companion when next touched. The estimation **worked-examples** doc is intentionally long and **exempt** per §1.

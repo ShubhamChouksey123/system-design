@@ -1,8 +1,5 @@
 # Back-of-the-Envelope Estimation
 
-> **Reference:** *System Design Interview – An Insider's Guide* by Alex Xu, Chapter 2.
-> **Goal:** Learn to produce fast, "good enough" numerical estimates that justify system design decisions during an interview.
-
 ---
 
 ## 1. What It Is & Why Interviewers Ask
