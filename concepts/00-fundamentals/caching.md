@@ -21,7 +21,7 @@ A **cache** is a fast, usually in-memory store holding a **copy** of data that's
 | **CDN** | Edge servers near users | CloudFront, Cloudflare, Akamai |
 | **Database cache** | Query/buffer cache in the DB | built-in |
 
-Local is fastest but per-node (duplicated, inconsistent); **distributed** is shared and scales out (via [consistent hashing](./load-balancing-and-consistent-hashing.md)); **CDN** caches static/media at the edge. For the distributed tier in depth — Redis vs Memcached, architecture, and scaling — see [Redis & Memcached](./redis-and-memcached.md).
+Local is fastest but per-node (duplicated, inconsistent); **distributed** is shared and scales out (via [consistent hashing](./load-balancing-and-consistent-hashing.md)); **CDN** caches static/media at the edge (see [CDN](./cdn.md)). For the distributed tier in depth — Redis vs Memcached, architecture, and scaling — see [Redis & Memcached](./redis-and-memcached.md).
 
 ## 3. Caching strategies
 

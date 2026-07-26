@@ -18,6 +18,8 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 | 00 | ↳ [Databases — Scaling](./00-fundamentals/databases-scaling.md) | ✅ Done |
 | 00 | ↳ [Caching](./00-fundamentals/caching.md) | ✅ Done |
 | 00 | ↳ [Distributed Caching — Redis & Memcached](./00-fundamentals/redis-and-memcached.md) | ✅ Done |
+| 00 | ↳ [Single Point of Failure](./00-fundamentals/single-point-of-failure.md) | ✅ Done |
+| 00 | ↳ [Content Delivery Network (CDN)](./00-fundamentals/cdn.md) | ✅ Done |
 | 01 | [Back-of-the-Envelope Estimation](./01-envelope-estimation/back-of-the-envelope-estimation.md) | ✅ Done |
 | 01 | ↳ [Worked Examples](./01-envelope-estimation/back-of-the-envelope-examples.md) | ✅ Done |
 | 02 | [System Design Interview Framework](./02-framework/system-design-interview-framework.md) | ✅ Done |
