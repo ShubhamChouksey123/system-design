@@ -63,7 +63,23 @@ Block elements need a **blank line before and after** them, or many renderers (i
 - **Code fences** (```` ``` ````), **lists**, and **headings** — same rule: blank line before and after.
 - Keep table rows contiguous — no blank line *between* rows.
 
-## 8. Before you save — checklist
+## 8. Diagrams (Excalidraw)
+
+Add a diagram when a picture argues the concept better than prose (flows, fan-outs, hub-and-spoke, before/after). Diagrams are **optional** — only when they add real clarity — but they make the resource easier to grasp. See [`cdn.md`](./00-fundamentals/cdn.md) for a live example.
+
+**How to make one** (uses the [`excalidraw-diagram`](../.claude/skills/excalidraw-diagram/SKILL.md) skill):
+1. Author a `.excalidraw` JSON file in a **`diagrams/`** subfolder next to the doc, e.g. `00-fundamentals/diagrams/cdn.excalidraw`.
+2. Render it to PNG (network needed → run with the sandbox disabled):
+   `cd .claude/skills/excalidraw-diagram/references && uv run python render_excalidraw.py <path>.excalidraw`
+3. **View the PNG and iterate** (render → view → fix) until it's clean — this loop is mandatory.
+4. Embed it near the top of the doc: `![plain alt text](./diagrams/name.png)`.
+
+**Rules:**
+- Make the diagram **argue** — the shape mirrors the concept (fan-out, timeline, convergence), not just labeled boxes. Follow the skill's methodology.
+- **Alt text must be plain** — no parentheses/brackets, they break Markdown image rendering.
+- **Commit both** the `.excalidraw` source (editable) and the `.png` (renders on GitHub).
+
+## 9. Before you save — checklist
 
 ```
 □ Under 120 lines — concept docs only (reference/example docs exempt, §1)
@@ -74,6 +90,7 @@ Block elements need a **blank line before and after** them, or many renderers (i
 □ Blank line before & after every table, list, and code block (§7)
 □ Every number ties to a decision
 □ Names real-world examples / technologies (e.g. Kafka, SQS, NGINX)
+□ Diagram (if any): argues the concept, plain alt text, source + PNG committed (§8)
 □ Added a row to concepts/README.md
 □ Relative cross-links resolve
 ```
