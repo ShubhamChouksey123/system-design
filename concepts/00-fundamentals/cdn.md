@@ -4,6 +4,8 @@
 
 A **CDN** is a globally distributed network of **edge servers** that cache content close to users, so requests are served from a nearby edge instead of the distant **origin**. It cuts latency, offloads the origin, and absorbs traffic spikes. Related: [caching](./caching.md).
 
+![CDN architecture — one far origin fans out to many edge PoPs near users, with fast local HIT paths and slower origin MISS paths](./diagrams/cdn.png)
+
 ## 1. Why a CDN?
 
 Physical distance = latency (a round trip across the world is ~150 ms). Serving a user in Tokyo from a US origin is slow and wastes origin capacity. A CDN puts a copy at a **point of presence (PoP)** near the user:
