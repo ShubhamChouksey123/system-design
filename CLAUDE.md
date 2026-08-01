@@ -13,17 +13,20 @@ All concepts are distilled from *System Design Interview – An Insider's Guide*
 ```
 README.md            landing page → points into concepts/ and practice/ (no concept table)
 concepts/            the study resources
-  README.md          the single concept index (add every new file here)
+  README.md          the single concept index + a "Useful material" external-links table
+  GUIDELINES.md      authoring rules (line cap, structure, conventions, diagrams §8)
   NN-section/        ordered section folder; holds one OR MORE concept files
-                       00-fundamentals/ (basics, databases-*, message-queue, apache-kafka,
-                         load-balancing-and-consistent-hashing, monolithic-vs-microservices)
+                       00-fundamentals/ (~12 files: basics, databases-*, caching,
+                         redis-and-memcached, message-queue, apache-kafka, cdn,
+                         event-driven-architecture, single-point-of-failure, …)
                        01-envelope-estimation/  02-framework/
-  GUIDELINES.md      authoring rules (line cap, structure, conventions)
+    diagrams/        optional Excalidraw diagrams for that section (.excalidraw source + .png)
 practice/            mock-interview log & prep playbook
   README.md          progress tracker (scored session table + recurring themes)
   answer-framework.md the 8-step answer playbook to run in the room
   NN-session/        one folder per mock (script.md = transcript + scorecard + tips)
-docs/                book PDF (gitignored)
+docs/                book PDF (gitignored) + TODO.md (backlog)
+.claude/skills/excalidraw-diagram/   diagram-rendering skill (render via uv; GUIDELINES §8)
 tmp.md               user's scratchpad / prompt buffer (gitignored — not a deliverable)
 ```
 
@@ -33,7 +36,7 @@ The user **reorganizes freely** (renames/moves folders, flattens directories, re
 `concepts/README.md` is the **single** concept index — add a row (with `↳` sub-rows for companions) for every new concept, using links relative to `concepts/` (e.g. `./01-envelope-estimation/...`). The root `README.md` is a thin landing page that links *into* `concepts/` and `practice/`; it does **not** duplicate the concept table, so leave it alone when adding concepts. Verify links resolve after any move.
 
 ### Naming
-Numbered folders (`00-`, `01-`, `02-`) are **ordered sections, not single concepts** — a section may hold **several sibling concept files** (e.g. `00-fundamentals/` currently holds 7). Files use descriptive kebab-case names **without** the number prefix (e.g. `apache-kafka.md`). **Reading order is the row order in `concepts/README.md`, not the filesystem.** Companion files (e.g. `back-of-the-envelope-examples.md`, `databases-scaling.md`) sit beside their primary concept and appear as `↳` sub-rows in the index.
+Numbered folders (`00-`, `01-`, `02-`) are **ordered sections, not single concepts** — a section may hold **many sibling concept files** (e.g. `00-fundamentals/` holds ~12). Files use descriptive kebab-case names **without** the number prefix (e.g. `apache-kafka.md`). **Reading order is the row order in `concepts/README.md`, not the filesystem.** Companion files (e.g. `back-of-the-envelope-examples.md`, `databases-scaling.md`) sit beside their primary concept and appear as `↳` sub-rows in the index.
 
 ## Document conventions (match these when adding content)
 

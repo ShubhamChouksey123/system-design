@@ -48,11 +48,27 @@ A durable, ordered, **replayable log** of events that consumers process continuo
 - **Stream processing:** filter, aggregate over **windows**, join streams — with tools like **Kafka Streams**, **Apache Flink**, **Spark Streaming**.
 - **Examples:** Apache Kafka, AWS Kinesis, Apache Pulsar. See [Apache Kafka](./apache-kafka.md).
 
-## 6. Trade-offs of EDA
+## 6. Advantages & disadvantages
 
-- **Pros:** loose coupling, independent scaling, resilience (broker buffers), extensibility, real-time reactions. 
-- **Cons:** **eventual consistency**, harder to trace a flow end-to-end (needs distributed tracing), debugging is harder, at-least-once delivery → consumers must be **idempotent**, and there's no simple synchronous "answer."
+| Advantages | Disadvantages |
+|---|---|
+| **Loose coupling** — producers & consumers evolve/deploy independently | **Eventual consistency** — no single immediate source of truth |
+| **Independent scaling** — scale only the hot consumers | **Hard to trace** a flow end-to-end (needs distributed tracing) |
+| **Resilience** — broker buffers; a consumer being down ≠ lost data | **Harder to debug** — async, non-linear flows |
+| **Extensibility** — add a subscriber without touching producers | **Duplicate handling** — at-least-once delivery → consumers must be **idempotent** |
+| **Real-time reactions** — react the moment events happen | **No simple synchronous answer** — request/response is awkward |
 
-## 7. One-Paragraph Summary (for quick revision)
+## 7. Real-world examples
+
+| System | Event flow → reactions |
+|---|---|
+| **E-commerce (Amazon)** | `OrderPlaced` → inventory, payment, shipping, email, analytics all react |
+| **Ride-sharing (Uber)** | `RideRequested` / `DriverMatched` / `TripEnded` drive matching, pricing, ETA, receipts |
+| **Streaming (Netflix)** | viewing/playback events → recommendations, analytics, billing (Kafka-heavy) |
+| **Payments / banking** | transaction events feed fraud detection + an **event-sourced** ledger |
+| **Activity feeds (Twitter/LinkedIn)** | a post event **fans out** to followers' feeds (pub/sub) |
+| **IoT & telemetry** | sensor/device streams processed in real time (Kinesis, Kafka) |
+
+## 8. One-Paragraph Summary (for quick revision)
 
 **Event-driven architecture** has services emit and react to **events** (immutable facts) via a broker instead of calling each other, decoupling producers from consumers. **Pub/Sub** fans one event out to every subscriber (Kafka topics, SNS). **Event sourcing** stores the append-only event log as the source of truth and derives state by **replay** (audit trail + rebuildable read models, at the cost of projections and complexity). **CQRS** splits the write model from denormalized read models updated asynchronously from events — fast reads, eventual consistency, great with event sourcing. **Event streaming** is a durable, ordered, **replayable** log processed continuously by stream processors (Kafka, Flink, Kinesis). EDA buys loose coupling, scalability, and real-time reactions, but costs eventual consistency, harder tracing/debugging, and requires idempotent consumers.
