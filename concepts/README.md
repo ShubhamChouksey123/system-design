@@ -10,12 +10,14 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 | # | Concept | Status |
 |---|---------|--------|
 | 00 | [System Design Fundamentals — Basics](./00-fundamentals/basics.md) | ✅ Done |
+| 00 | ↳ [API Design](./00-fundamentals/api-design.md) | ✅ Done |
 | 00 | ↳ [Load Balancing & Consistent Hashing](./00-fundamentals/load-balancing-and-consistent-hashing.md) | ✅ Done |
 | 00 | ↳ [Message Queue](./00-fundamentals/message-queue.md) | ✅ Done |
 | 00 | ↳ [Apache Kafka](./00-fundamentals/apache-kafka.md) | ✅ Done |
 | 00 | ↳ [Monolithic vs Microservices](./00-fundamentals/monolithic-vs-microservices.md) | ✅ Done |
 | 00 | ↳ [Databases — Fundamentals](./00-fundamentals/databases-fundamentals.md) | ✅ Done |
 | 00 | ↳ [Databases — Scaling](./00-fundamentals/databases-scaling.md) | ✅ Done |
+| 00 | ↳ [NoSQL Databases](./00-fundamentals/nosql-databases.md) | ✅ Done |
 | 00 | ↳ [Caching](./00-fundamentals/caching.md) | ✅ Done |
 | 00 | ↳ [Distributed Caching — Redis & Memcached](./00-fundamentals/redis-and-memcached.md) | ✅ Done |
 | 00 | ↳ [Single Point of Failure](./00-fundamentals/single-point-of-failure.md) | ✅ Done |

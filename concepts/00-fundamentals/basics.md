@@ -61,7 +61,7 @@ An **API** is a contract letting software talk to software — *what* operations
 
 **API styles:** **REST** (resources over HTTP verbs — public CRUD) · **gRPC** (binary RPC over HTTP/2 — fast internal calls) · **GraphQL** (client-shaped queries — avoid over/under-fetching).
 
-> **Takeaway:** APIs are the seams of a system. Defining the API (`POST /urls {longUrl} → 201 {shortUrl}`) *first* forces clarity on each component before you wire them together.
+> **Takeaway:** APIs are the seams of a system. Defining the API (`POST /urls {longUrl} → 201 {shortUrl}`) *first* forces clarity on each component before you wire them together. How to design a good one: [API design](./api-design.md).
 
 ---
 

@@ -25,6 +25,8 @@ A **database** is an organized, persistent store of data; a **DBMS** (Database M
 | **Wide-column** | rows with dynamic columns | Cassandra, HBase |
 | **Graph** | nodes + edges | Neo4j |
 
+Deep dive on families, trade-offs, and use cases: [NoSQL databases](./nosql-databases.md).
+
 ## 3. SQL vs NoSQL — when?
 
 - **SQL** — you need **ACID transactions**, complex joins/queries, and a well-defined schema (payments, orders, users).
