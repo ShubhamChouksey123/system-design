@@ -2,7 +2,7 @@
 
 ---
 
-How to design a **good** API — a clear, consistent, evolvable contract between a service and its callers. Companion to [APIs in basics](./basics.md) (request/response, HTTP methods, status codes).
+How to design a **good** API — a clear, consistent, evolvable contract between a service and its callers. See [HTTP](./http.md) for methods/status/headers and [auth](./authentication-and-authorization.md) for securing it.
 
 ## 1. What makes a good API?
 
@@ -12,16 +12,16 @@ An API is a **contract**. A good one is **consistent** (predictable naming and p
 
 | Style | Shape | Best for |
 |---|---|---|
-| **REST** | resources over HTTP verbs (JSON) | public / CRUD APIs, cacheable, ubiquitous |
-| **gRPC** | binary RPC over HTTP/2 | fast internal service-to-service, streaming |
-| **GraphQL** | client-shaped queries, one endpoint | flexible reads, avoid over/under-fetching |
-| **Webhooks** | server → client callback on an event | async notifications (payments, CI) |
+| [**REST**](./rest.md) | resources over HTTP verbs (JSON) | public / CRUD APIs, cacheable, ubiquitous |
+| [**gRPC**](./grpc.md) | binary RPC over HTTP/2 | fast internal service-to-service, streaming |
+| [**GraphQL**](./graphql.md) | client-shaped queries, one endpoint | flexible reads, avoid over/under-fetching |
+| [**Webhooks**](./webhooks.md) | server → client callback on an event | async notifications (payments, CI) |
 
 ## 3. RESTful design principles
 
 - **Resource-oriented** — URLs are **nouns**, the HTTP method is the verb. Good: `GET /users/123/orders`; bad: `GET /getUserOrders?id=123`.
 - **Plural nouns + hierarchy** for relationships: `/users/{id}/orders/{orderId}`.
-- **Methods → actions, status codes → outcomes** (see [basics](./basics.md)).
+- **Methods → actions, status codes → outcomes** (see [HTTP](./http.md)).
 - **Stateless** — each request carries its own auth/params; no server-side session.
 
 | Action | Method + path |
@@ -38,8 +38,8 @@ An API is a **contract**. A good one is **consistent** (predictable naming and p
 | **Filtering / sorting** | Query params: `?status=paid&sort=-createdAt` |
 | **Idempotency** | `GET/PUT/DELETE` idempotent; make `POST` retry-safe with an **Idempotency-Key** |
 | **Errors** | Consistent shape + right status: `{ "error": { "code", "message" } }` |
-| **Auth** | OAuth2 / JWT / API keys over **TLS**; least-privilege scopes |
-| **Rate limiting** | Throttle and return **429** with `Retry-After` + limit headers |
+| **Auth** | [OAuth2 / JWT / API keys](./authentication-and-authorization.md) over **TLS**; least-privilege scopes |
+| **Rate limiting** | Throttle and return **429** with `Retry-After` + limit headers (see [security](./api-security.md)) |
 
 ## 5. Best practices (Do / Don't)
 

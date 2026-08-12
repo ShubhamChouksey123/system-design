@@ -10,7 +10,16 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 | # | Concept | Status |
 |---|---------|--------|
 | 00 | [System Design Fundamentals — Basics](./00-fundamentals/basics.md) | ✅ Done |
-| 00 | ↳ [API Design](./00-fundamentals/api-design.md) | ✅ Done |
+| 00 | ↳ APIs — [HTTP](./00-fundamentals/apis/http.md) | ✅ Done |
+| 00 | ↳ APIs — [HTTP Versions (1.0→3)](./00-fundamentals/apis/http-versions.md) | ✅ Done |
+| 00 | ↳ APIs — [API Design](./00-fundamentals/apis/api-design.md) | ✅ Done |
+| 00 | ↳ APIs — [REST](./00-fundamentals/apis/rest.md) | ✅ Done |
+| 00 | ↳ APIs — [gRPC](./00-fundamentals/apis/grpc.md) | ✅ Done |
+| 00 | ↳ APIs — [GraphQL](./00-fundamentals/apis/graphql.md) | ✅ Done |
+| 00 | ↳ APIs — [Authentication & Authorization](./00-fundamentals/apis/authentication-and-authorization.md) | ✅ Done |
+| 00 | ↳ APIs — [SSO: SAML, OAuth 2.0 & OIDC](./00-fundamentals/apis/oauth-oidc-saml.md) | ✅ Done |
+| 00 | ↳ APIs — [API Security](./00-fundamentals/apis/api-security.md) | ✅ Done |
+| 00 | ↳ APIs — [Webhooks](./00-fundamentals/apis/webhooks.md) | ✅ Done |
 | 00 | ↳ [Load Balancing & Consistent Hashing](./00-fundamentals/load-balancing-and-consistent-hashing.md) | ✅ Done |
 | 00 | ↳ [Message Queue](./00-fundamentals/message-queue.md) | ✅ Done |
 | 00 | ↳ [Apache Kafka](./00-fundamentals/apache-kafka.md) | ✅ Done |
