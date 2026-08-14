@@ -20,7 +20,7 @@ Securing an API: proving **who** a caller is and controlling **what** they may d
 | Scaling | needs shared session store (sticky/Redis) | **stateless** — any server can verify |
 | Revoke | delete the session (easy) | hard until expiry (needs a denylist) |
 
-Stateless tokens fit horizontally-scaled, [stateless](../single-point-of-failure.md) services — the common choice for APIs.
+Stateless tokens fit horizontally-scaled, [stateless](../08-distributed-systems/single-point-of-failure.md) services — the common choice for APIs.
 
 **Session-based flow** — the server creates a session and stores it; the client holds only a session-ID cookie, sent on every request for the server to verify:
 

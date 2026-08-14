@@ -5,42 +5,71 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 > 📐 Authoring a new file? Follow [`GUIDELINES.md`](./GUIDELINES.md) — notably the **< 120 lines** per-file cap.
 
+## 📊 Progress Tracking
+
+Track your overall concepts: **1 / 47 completed (2%)** *(read + revised)*
+
+- **Written:** 27 / 47 — **57%** *(20 in backlog — the `*(todo)*` rows)*
+- **Read:** 1 / 47 — **2%**
+- **Revised:** 0 / 47 — **0%**
+
+> Tick `☐ → ✅` in the table as you go, then bump these counts.
+
 ## Concepts
 
-| # | Concept | Status |
-|---|---------|--------|
-| 00 | [System Design Fundamentals — Basics](./00-fundamentals/basics.md) | ✅ Done |
-| 00 | ↳ APIs — [HTTP](./00-fundamentals/apis/http.md) | ✅ Done |
-| 00 | ↳ APIs — [HTTP Versions (1.0→3)](./00-fundamentals/apis/http-versions.md) | ✅ Done |
-| 00 | ↳ APIs — [API Design](./00-fundamentals/apis/api-design.md) | ✅ Done |
-| 00 | ↳ APIs — [REST](./00-fundamentals/apis/rest.md) | ✅ Done |
-| 00 | ↳ APIs — [gRPC](./00-fundamentals/apis/grpc.md) | ✅ Done |
-| 00 | ↳ APIs — [GraphQL](./00-fundamentals/apis/graphql.md) | ✅ Done |
-| 00 | ↳ APIs — [Authentication & Authorization](./00-fundamentals/apis/authentication-and-authorization.md) | ✅ Done |
-| 00 | ↳ APIs — [SSO: SAML, OAuth 2.0 & OIDC](./00-fundamentals/apis/oauth-oidc-saml.md) | ✅ Done |
-| 00 | ↳ APIs — [API Security](./00-fundamentals/apis/api-security.md) | ✅ Done |
-| 00 | ↳ APIs — [Webhooks](./00-fundamentals/apis/webhooks.md) | ✅ Done |
-| 00 | ↳ [Load Balancing & Consistent Hashing](./00-fundamentals/load-balancing-and-consistent-hashing.md) | ✅ Done |
-| 00 | ↳ [Message Queue](./00-fundamentals/message-queue.md) | ✅ Done |
-| 00 | ↳ [Apache Kafka](./00-fundamentals/apache-kafka.md) | ✅ Done |
-| 00 | ↳ [Monolithic vs Microservices](./00-fundamentals/monolithic-vs-microservices.md) | ✅ Done |
-| 00 | ↳ [Databases — Fundamentals](./00-fundamentals/databases-fundamentals.md) | ✅ Done |
-| 00 | ↳ [Databases — Scaling](./00-fundamentals/databases-scaling.md) | ✅ Done |
-| 00 | ↳ [NoSQL Databases](./00-fundamentals/nosql-databases.md) | ✅ Done |
-| 00 | ↳ [Caching](./00-fundamentals/caching.md) | ✅ Done |
-| 00 | ↳ [Distributed Caching — Redis & Memcached](./00-fundamentals/redis-and-memcached.md) | ✅ Done |
-| 00 | ↳ [Single Point of Failure](./00-fundamentals/single-point-of-failure.md) | ✅ Done |
-| 00 | ↳ [Content Delivery Network (CDN)](./00-fundamentals/cdn.md) | ✅ Done |
-| 00 | ↳ [Event-Driven Architecture](./00-fundamentals/event-driven-architecture.md) | ✅ Done |
-| 01 | [Back-of-the-Envelope Estimation](./01-envelope-estimation/back-of-the-envelope-estimation.md) | ✅ Done |
-| 01 | ↳ [Worked Examples](./01-envelope-estimation/back-of-the-envelope-examples.md) | ✅ Done |
-| 02 | [System Design Interview Framework](./02-framework/system-design-interview-framework.md) | ✅ Done |
+Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: tick ✅ as you go. **Unlinked rows are not yet written** — backlog lives in [`docs/TODO.md`](../docs/TODO.md).
 
-## How to use these
+| Section | Concept | Read | Revised | Last Revision |
+|---|---|:--:|:--:|---|
+| **00 · Framework** | [System Design Interview Framework](./00-framework/system-design-interview-framework.md) | ☐ | ☐ | — |
+| **01 · Envelope Estimation** | [Back-of-the-Envelope Estimation](./01-envelope-estimation/back-of-the-envelope-estimation.md) | ☐ | ☐ | — |
+| | ↳ [Worked Examples](./01-envelope-estimation/back-of-the-envelope-examples.md) | ☐ | ☐ | — |
+| **02 · Foundations** | [Basics — Cloud, API, Scalability](./02-foundations/basics.md) | ☐ | ☐ | — |
+| | [Monolithic vs Microservices](./02-foundations/monolithic-vs-microservices.md) | ☐ | ☐ | — |
+| **03 · Networking & Delivery** | [Load Balancing & Consistent Hashing](./03-networking-and-delivery/load-balancing-and-consistent-hashing.md) | ☐ | ☐ | — |
+| | [Content Delivery Network (CDN)](./03-networking-and-delivery/cdn.md) | ☐ | ☐ | — |
+| | DNS & Networking *(todo)* | ☐ | ☐ | — |
+| | API Gateway & Reverse Proxy *(todo)* | ☐ | ☐ | — |
+| | Rate Limiting *(todo)* | ☐ | ☐ | — |
+| **04 · APIs** | [API Design](./04-apis/api-design.md) | ✅ | ☐ | 2026-08-15 |
+| | [HTTP — Methods, Status, Headers](./04-apis/http.md) | ☐ | ☐ | — |
+| | [HTTP Versions (1.0 → 3)](./04-apis/http-versions.md) | ☐ | ☐ | — |
+| | [REST](./04-apis/rest.md) | ☐ | ☐ | — |
+| | [gRPC](./04-apis/grpc.md) | ☐ | ☐ | — |
+| | [GraphQL](./04-apis/graphql.md) | ☐ | ☐ | — |
+| | [Real-Time Communication](./04-apis/realtime-communication.md) | ☐ | ☐ | — |
+| | [Webhooks](./04-apis/webhooks.md) | ☐ | ☐ | — |
+| | [Authentication & Authorization](./04-apis/authentication-and-authorization.md) | ☐ | ☐ | — |
+| | [SSO: SAML, OAuth 2.0 & OIDC](./04-apis/oauth-oidc-saml.md) | ☐ | ☐ | — |
+| | [API Security](./04-apis/api-security.md) | ☐ | ☐ | — |
+| | Serialization Formats — JSON / Protobuf / Avro *(todo)* | ☐ | ☐ | — |
+| | Signing Algorithms — symmetric / asymmetric, RSA, SHA *(todo)* | ☐ | ☐ | — |
+| **05 · Databases & Storage** | [Databases — Fundamentals](./05-databases-and-storage/databases-fundamentals.md) | ☐ | ☐ | — |
+| | [Databases — Scaling](./05-databases-and-storage/databases-scaling.md) | ☐ | ☐ | — |
+| | [NoSQL Databases](./05-databases-and-storage/nosql-databases.md) | ☐ | ☐ | — |
+| | Sharding / Partitioning *(todo)* | ☐ | ☐ | — |
+| | Object / Blob Storage *(todo)* | ☐ | ☐ | — |
+| | Full-Text Search / Inverted Index *(todo)* | ☐ | ☐ | — |
+| | OLTP vs OLAP / Data Warehouse *(todo)* | ☐ | ☐ | — |
+| | Geospatial Indexing — geohash, quadtree *(todo)* | ☐ | ☐ | — |
+| | Bloom Filters *(todo)* | ☐ | ☐ | — |
+| | Unique ID Generation — Snowflake, UUID *(todo)* | ☐ | ☐ | — |
+| **06 · Caching** | [Caching](./06-caching/caching.md) | ☐ | ☐ | — |
+| | [Distributed Caching — Redis & Memcached](./06-caching/redis-and-memcached.md) | ☐ | ☐ | — |
+| **07 · Messaging & Events** | [Message Queue](./07-messaging-and-events/message-queue.md) | ☐ | ☐ | — |
+| | [Apache Kafka](./07-messaging-and-events/apache-kafka.md) | ☐ | ☐ | — |
+| | [Event-Driven Architecture](./07-messaging-and-events/event-driven-architecture.md) | ☐ | ☐ | — |
+| **08 · Distributed Systems** | [Single Point of Failure](./08-distributed-systems/single-point-of-failure.md) | ☐ | ☐ | — |
+| | Consistency Models — strong / eventual / quorum *(todo)* | ☐ | ☐ | — |
+| | Consensus & Leader Election — Raft / Paxos *(todo)* | ☐ | ☐ | — |
+| | Distributed Transactions — 2PC / Saga / CDC *(todo)* | ☐ | ☐ | — |
+| | Batch vs Stream Processing *(todo)* | ☐ | ☐ | — |
+| **09 · Reliability & Operations** | Resilience Patterns — retries, circuit breaker *(todo)* | ☐ | ☐ | — |
+| | Observability — logs, metrics, tracing, SLO *(todo)* | ☐ | ☐ | — |
+| **Broader tracks** | AWS — core services mapped to concepts *(todo)* | ☐ | ☐ | — |
+| | AI curriculum *(todo)* | ☐ | ☐ | — |
 
-- Read the concept top-to-bottom once for understanding.
-- Use the **cheat sheet** and **one-paragraph summary** sections for quick revision before an interview.
-- Attempt the **practice problems** without looking at the solution sketches first.
+Worked **case studies** ("Design X") are tracked separately in [`docs/TODO.md`](../docs/TODO.md).
 
 ## Useful material
 

@@ -2,7 +2,7 @@
 
 ---
 
-In **event-driven architecture (EDA)**, services communicate by **producing and reacting to events** ("something happened" — `OrderPlaced`, `PaymentFailed`) instead of calling each other directly. Producers don't know who consumes; this **decouples** services so they scale, deploy, and fail independently. Related: [message queue](./message-queue.md), [Apache Kafka](./apache-kafka.md), [microservices](./monolithic-vs-microservices.md).
+In **event-driven architecture (EDA)**, services communicate by **producing and reacting to events** ("something happened" — `OrderPlaced`, `PaymentFailed`) instead of calling each other directly. Producers don't know who consumes; this **decouples** services so they scale, deploy, and fail independently. Related: [message queue](./message-queue.md), [Apache Kafka](./apache-kafka.md), [microservices](../02-foundations/monolithic-vs-microservices.md).
 
 ## 1. Event vs command / request
 

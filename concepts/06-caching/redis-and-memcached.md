@@ -33,7 +33,7 @@ Single-threaded command processing (no lock contention; commands are atomic), wi
 
 With data spread over many nodes, a key must **always map to the same node**, or a write and a later read land on different nodes → a guaranteed miss (or stale copy). Two approaches:
 
-- **Client-side (Memcached, proxies like twemproxy/Envoy)** — the client hashes the key to pick a node using **consistent hashing** (hash ring + virtual nodes), so adding/removing a node reshuffles only ~`K/N` keys instead of all of them. See [consistent hashing](./load-balancing-and-consistent-hashing.md).
+- **Client-side (Memcached, proxies like twemproxy/Envoy)** — the client hashes the key to pick a node using **consistent hashing** (hash ring + virtual nodes), so adding/removing a node reshuffles only ~`K/N` keys instead of all of them. See [consistent hashing](../03-networking-and-delivery/load-balancing-and-consistent-hashing.md).
 - **Server-side hash slots (Redis Cluster)** — the keyspace is split into **16,384 slots**; `slot = CRC16(key) mod 16384`, each slot owned by one primary. The client caches the slot→node map and routes directly; if it guesses wrong, the node replies **`MOVED <slot> <host>`** to redirect it (and the client refreshes its map).
 
 ```

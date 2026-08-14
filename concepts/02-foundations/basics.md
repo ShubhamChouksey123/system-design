@@ -61,7 +61,7 @@ An **API** is a contract letting software talk to software — *what* operations
 
 **API styles:** **REST** (resources over HTTP verbs — public CRUD) · **gRPC** (binary RPC over HTTP/2 — fast internal calls) · **GraphQL** (client-shaped queries — avoid over/under-fetching).
 
-> **Takeaway:** APIs are the seams of a system. Defining the API (`POST /urls {longUrl} → 201 {shortUrl}`) *first* forces clarity on each component before you wire them together. How to design a good one: [API design](./apis/api-design.md).
+> **Takeaway:** APIs are the seams of a system. Defining the API (`POST /urls {longUrl} → 201 {shortUrl}`) *first* forces clarity on each component before you wire them together. How to design a good one: [API design](../04-apis/api-design.md).
 
 ---
 
@@ -81,7 +81,7 @@ An **API** is a contract letting software talk to software — *what* operations
 
 **Which, when?** Start **vertical** while small; go **horizontal** at the single-machine ceiling or for HA. Horizontal is the default at interview scale — but forces two decisions: keep services **stateless**, and pick a **key-distribution strategy** (consistent hashing) for caches/DBs.
 
-> **Takeaway:** "add more servers" is step one. Scaling out then demands load balancing, statelessness, and data partitioning — see [load balancing & consistent hashing](./load-balancing-and-consistent-hashing.md). Size the fleet with the [compute example](../01-envelope-estimation/back-of-the-envelope-examples.md) (`servers ≈ peak QPS ÷ per-server QPS`).
+> **Takeaway:** "add more servers" is step one. Scaling out then demands load balancing, statelessness, and data partitioning — see [load balancing & consistent hashing](../03-networking-and-delivery/load-balancing-and-consistent-hashing.md). Size the fleet with the [compute example](../01-envelope-estimation/back-of-the-envelope-examples.md) (`servers ≈ peak QPS ÷ per-server QPS`).
 
 ---
 

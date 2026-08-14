@@ -19,7 +19,7 @@ A deeper look at non-relational stores. Companion to [databases — fundamentals
 
 - **Key-value** is the simplest/fastest but you can only look up by key.
 - **Document** is the most general-purpose NoSQL choice.
-- **Wide-column** wins on write volume + horizontal scale (uses [consistent hashing](./load-balancing-and-consistent-hashing.md)).
+- **Wide-column** wins on write volume + horizontal scale (uses [consistent hashing](../03-networking-and-delivery/load-balancing-and-consistent-hashing.md)).
 - **Graph** is the only one optimized for **relationships** — "friends of friends" is O(hops), not a costly join.
 
 ## 3. Advantages & disadvantages

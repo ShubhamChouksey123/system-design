@@ -2,7 +2,7 @@
 
 ---
 
-How to make a database handle more data and traffic. Companion: [database fundamentals](./databases-fundamentals.md). Related: [consistent hashing](./load-balancing-and-consistent-hashing.md).
+How to make a database handle more data and traffic. Companion: [database fundamentals](./databases-fundamentals.md). Related: [consistent hashing](../03-networking-and-delivery/load-balancing-and-consistent-hashing.md).
 
 ## 1. Optimize the queries first (cheapest win)
 

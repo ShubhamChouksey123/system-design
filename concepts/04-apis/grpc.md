@@ -2,7 +2,7 @@
 
 ---
 
-A high-performance API style for service-to-service calls. Companion to [API design](./api-design.md) and [HTTP](./http.md). Great fit for [microservices](../monolithic-vs-microservices.md).
+A high-performance API style for service-to-service calls. Companion to [API design](./api-design.md) and [HTTP](./http.md). Great fit for [microservices](../02-foundations/monolithic-vs-microservices.md).
 
 ## 1. What is gRPC?
 

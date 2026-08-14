@@ -2,7 +2,7 @@
 
 ---
 
-A **single point of failure** is any component whose failure takes the whole system down — one box, one link, or one dependency with no backup. Eliminating SPOFs is the core of designing for **high availability**. Related: [load balancing & consistent hashing](./load-balancing-and-consistent-hashing.md), [databases — scaling](./databases-scaling.md).
+A **single point of failure** is any component whose failure takes the whole system down — one box, one link, or one dependency with no backup. Eliminating SPOFs is the core of designing for **high availability**. Related: [load balancing & consistent hashing](../03-networking-and-delivery/load-balancing-and-consistent-hashing.md), [databases — scaling](../05-databases-and-storage/databases-scaling.md).
 
 ## 1. What & why
 
@@ -12,7 +12,7 @@ If a request path depends on a component that has **no redundancy**, that compon
 
 | SPOF | Fix |
 |---|---|
-| **Single app server** | Run **multiple stateless instances** behind a [load balancer](./load-balancing-and-consistent-hashing.md) |
+| **Single app server** | Run **multiple stateless instances** behind a [load balancer](../03-networking-and-delivery/load-balancing-and-consistent-hashing.md) |
 | **The load balancer itself** | **Redundant LB pair** (active–passive w/ floating IP, or active–active) |
 | **Single database** | **Replication** (leader + followers) with automatic **failover** |
 | **Single cache node** | Cluster with replicas + sharding (Redis Cluster / Sentinel) |
@@ -25,7 +25,7 @@ If a request path depends on a component that has **no redundancy**, that compon
 
 - **Redundancy** — run N ≥ 2 of everything; **N+1 / N+2** capacity so losing one node doesn't overload the rest.
 - **Replication** — keep copies of data on multiple nodes (leader–follower, quorum).
-- **Automatic failover** — detect death (**heartbeats / health checks**) and promote a standby (leader election, e.g. via [Zookeeper/Raft](./message-queue.md)) — no manual intervention.
+- **Automatic failover** — detect death (**heartbeats / health checks**) and promote a standby (leader election, e.g. via [Zookeeper/Raft](../07-messaging-and-events/message-queue.md)) — no manual intervention.
 - **Statelessness** — keep app servers stateless (session/state in a shared store) so any instance is interchangeable and replaceable.
 - **Load balancing** — spread traffic and route away from unhealthy nodes.
 - **Geographic distribution** — multiple AZs/regions to survive a datacenter outage.

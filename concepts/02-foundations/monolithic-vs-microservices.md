@@ -8,7 +8,7 @@ The **architectural style** question that opens many designs: build the system a
 
 **Monolith** — the whole application (UI, business logic, data access) is built, deployed, and scaled as a **single unit**. One codebase, one process, usually one shared database.
 
-**Microservices** — the application is split into **small, independent services**, each owning one business capability, its **own database**, and its own deploy cycle. They talk over the network (REST/gRPC/async [message queue](./message-queue.md)).
+**Microservices** — the application is split into **small, independent services**, each owning one business capability, its **own database**, and its own deploy cycle. They talk over the network (REST/gRPC/async [message queue](../07-messaging-and-events/message-queue.md)).
 
 ```
 Monolith                         Microservices

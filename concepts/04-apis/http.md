@@ -64,7 +64,7 @@ Five classes: **1xx** informational, **2xx** success, **3xx** redirect, **4xx** 
 | Request | `Accept` | format the client wants back |
 | Request | `Cookie`, `User-Agent` | session, client info |
 | Response | `Content-Type` | format of the body returned |
-| Response | `Cache-Control`, `ETag` | caching + revalidation (see [caching](../caching.md)) |
+| Response | `Cache-Control`, `ETag` | caching + revalidation (see [caching](../06-caching/caching.md)) |
 | Response | `Location` | URI of a created/redirected resource |
 | Response | `Set-Cookie` | set a session cookie |
 | Response | `Access-Control-Allow-Origin` | **CORS** — which origins may call |

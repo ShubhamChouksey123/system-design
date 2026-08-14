@@ -15,11 +15,11 @@ README.md            landing page → points into concepts/ and practice/ (no co
 concepts/            the study resources
   README.md          the single concept index + a "Useful material" external-links table
   GUIDELINES.md      authoring rules (line cap, structure, conventions, diagrams §8)
-  NN-section/        ordered section folder; holds one OR MORE concept files
-                       00-fundamentals/ (~12 files: basics, databases-*, caching,
-                         redis-and-memcached, message-queue, apache-kafka, cdn,
-                         event-driven-architecture, single-point-of-failure, …)
-                       01-envelope-estimation/  02-framework/
+  NN-section/        ordered topic-section folder; holds one OR MORE sibling concept files:
+                       00-framework/ · 01-envelope-estimation/ · 02-foundations/ ·
+                       03-networking-and-delivery/ · 04-apis/ (11 files) ·
+                       05-databases-and-storage/ · 06-caching/ ·
+                       07-messaging-and-events/ · 08-distributed-systems/
     diagrams/        optional Excalidraw diagrams for that section (.excalidraw source + .png)
 practice/            mock-interview log & prep playbook
   README.md          progress tracker (scored session table + recurring themes)
@@ -32,11 +32,11 @@ tmp.md               user's scratchpad / prompt buffer (gitignored — not a del
 
 The user **reorganizes freely** (renames/moves folders, flattens directories, relocates the index). **Always re-inspect the tree from the repo root before adding or linking files** — never assume the last-known layout.
 
-### The concept index
-`concepts/README.md` is the **single** concept index — add a row (with `↳` sub-rows for companions) for every new concept, using links relative to `concepts/` (e.g. `./01-envelope-estimation/...`). The root `README.md` is a thin landing page that links *into* `concepts/` and `practice/`; it does **not** duplicate the concept table, so leave it alone when adding concepts. Verify links resolve after any move.
+### The concept index (also a progress tracker)
+`concepts/README.md` is the **single** concept index **and** the study-progress tracker. Its table has `Section · Concept · Read · Revised · Last Revision` columns, and it lists **unwritten backlog concepts as unlinked rows marked `*(todo)*`** (mirroring `docs/TODO.md`). When you **write** a concept: convert its row from plain text to a link (or add a new row with `↳` for a companion), and **bump the `## 📊 Progress Tracking` counts** at the top (`Written X / 47` + %). `Read`/`Revised` checkboxes and `Last Revision` are the user's to fill — leave them as `☐`/`—`. The root `README.md` is a thin landing page into `concepts/` and `practice/`; it does **not** duplicate the table, so leave it alone. Verify links resolve after any move.
 
 ### Naming
-Numbered folders (`00-`, `01-`, `02-`) are **ordered sections, not single concepts** — a section may hold **many sibling concept files** (e.g. `00-fundamentals/` holds ~12). Files use descriptive kebab-case names **without** the number prefix (e.g. `apache-kafka.md`). **Reading order is the row order in `concepts/README.md`, not the filesystem.** Companion files (e.g. `back-of-the-envelope-examples.md`, `databases-scaling.md`) sit beside their primary concept and appear as `↳` sub-rows in the index.
+Numbered folders (`00-`…`08-`) are **ordered topic sections** — each holds **sibling concept files** for that topic (e.g. `04-apis/` holds 11; `05-databases-and-storage/` holds 3). Files use descriptive kebab-case names **without** the number prefix (e.g. `apache-kafka.md`). **Reading order is the row order in `concepts/README.md`, not the filesystem.** Companion files (e.g. `back-of-the-envelope-examples.md`) sit beside their primary concept.
 
 ## Document conventions (match these when adding content)
 
@@ -44,7 +44,7 @@ Numbered folders (`00-`, `01-`, `02-`) are **ordered sections, not single concep
 
 **Concept doc:** start with the `# Title` (a `---` divider under it is fine) and go straight into content — **no `Reference`/`Goal`/`Prerequisite` header block** (concepts are numbered, so reading in order covers prerequisites). Use numbered sections built from **tables + short prose**, and **always close with a `## One-Paragraph Summary`**. Two depths exist:
 - **Full concept** (templates: `back-of-the-envelope-estimation.md`, `system-design-interview-framework.md`): *what it is / why asked* → reference tables/framework → worked example → cheat sheet or in-the-room checklist → tips (Do/Don't) → practice problems (`<details>` for solutions) → summary.
-- **Leaner reference concept** (most of `00-fundamentals/`, e.g. `apache-kafka.md`, `databases-*`): what it is → a few tables → real-world examples/tech → when-to-use trade-offs → summary. Drop practice problems/tips when they don't fit.
+- **Leaner reference concept** (most topic docs, e.g. `07-messaging-and-events/apache-kafka.md`, `05-databases-and-storage/databases-*`): what it is → a few tables → real-world examples/tech → when-to-use trade-offs → summary. Drop practice problems/tips when they don't fit.
 
 **Worked-examples doc** (template: `concepts/01-envelope-estimation/back-of-the-envelope-examples.md`): each example is `assumptions table → step-by-step math (in a code block) → **Takeaway** tying the number to an architectural decision`. End with a cross-example "patterns" section.
 
@@ -55,7 +55,7 @@ Numbered folders (`00-`, `01-`, `02-`) are **ordered sections, not single concep
 - Assumptions are **illustrative** — the skill taught is stating assumptions and reasoning, not memorizing "true" figures.
 
 ## The two framework docs (don't conflate them)
-- `concepts/02-framework/...` — the **behavioral** process: *how* to run the interview (4 phases: scope → high-level → deep dive → wrap, plus collaboration Dos/Don'ts). Chapter 3 of the book.
+- `concepts/00-framework/...` — the **behavioral** process: *how* to run the interview (4 phases: scope → high-level → deep dive → wrap, plus collaboration Dos/Don'ts). Chapter 3 of the book.
 - `practice/answer-framework.md` — the **content** playbook: *what* to cover in an answer (8 steps: functional/non-functional reqs → estimation → architecture → walkthrough → data model → trade-offs → testing/monitoring). Maps its 8 steps onto the other doc's 4 phases.
 
 ## Practice tracker conventions (`practice/`)

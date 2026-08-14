@@ -2,7 +2,7 @@
 
 ---
 
-Storing a copy of data closer to the requester so repeat reads are fast and the backing store is spared. The highest-leverage lever for read-heavy systems. Related: [databases — scaling](./databases-scaling.md).
+Storing a copy of data closer to the requester so repeat reads are fast and the backing store is spared. The highest-leverage lever for read-heavy systems. Related: [databases — scaling](../05-databases-and-storage/databases-scaling.md).
 
 ## 1. What is caching?
 
@@ -21,7 +21,7 @@ A **cache** is a fast, usually in-memory store holding a **copy** of data that's
 | **CDN** | Edge servers near users | CloudFront, Cloudflare, Akamai |
 | **Database cache** | Query/buffer cache in the DB | built-in |
 
-Local is fastest but per-node (duplicated, inconsistent); **distributed** is shared and scales out (via [consistent hashing](./load-balancing-and-consistent-hashing.md)); **CDN** caches static/media at the edge (see [CDN](./cdn.md)). For the distributed tier in depth — Redis vs Memcached, architecture, and scaling — see [Redis & Memcached](./redis-and-memcached.md).
+Local is fastest but per-node (duplicated, inconsistent); **distributed** is shared and scales out (via [consistent hashing](../03-networking-and-delivery/load-balancing-and-consistent-hashing.md)); **CDN** caches static/media at the edge (see [CDN](../03-networking-and-delivery/cdn.md)). For the distributed tier in depth — Redis vs Memcached, architecture, and scaling — see [Redis & Memcached](./redis-and-memcached.md).
 
 ## 3. Caching strategies
 

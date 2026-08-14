@@ -65,10 +65,10 @@ Block elements need a **blank line before and after** them, or many renderers (i
 
 ## 8. Diagrams (Excalidraw)
 
-Add a diagram when a picture argues the concept better than prose (flows, fan-outs, hub-and-spoke, before/after). Diagrams are **optional** — only when they add real clarity — but they make the resource easier to grasp. See [`cdn.md`](./00-fundamentals/cdn.md) for a live example.
+Add a diagram when a picture argues the concept better than prose (flows, fan-outs, hub-and-spoke, before/after). Diagrams are **optional** — only when they add real clarity — but they make the resource easier to grasp. See [`cdn.md`](./03-networking-and-delivery/cdn.md) for a live example.
 
 **How to make one** (uses the [`excalidraw-diagram`](../.claude/skills/excalidraw-diagram/SKILL.md) skill):
-1. Author a `.excalidraw` JSON file in a **`diagrams/`** subfolder next to the doc, e.g. `00-fundamentals/diagrams/cdn.excalidraw`.
+1. Author a `.excalidraw` JSON file in a **`diagrams/`** subfolder next to the doc, e.g. `03-networking-and-delivery/diagrams/cdn.excalidraw`.
 2. Render it to PNG (network needed → run with the sandbox disabled):
    `cd .claude/skills/excalidraw-diagram/references && uv run python render_excalidraw.py <path>.excalidraw`
 3. **View the PNG and iterate** (render → view → fix) until it's clean — this loop is mandatory.

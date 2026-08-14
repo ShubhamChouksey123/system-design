@@ -16,10 +16,10 @@ The dominant API style: model everything as **resources** addressed by URLs and 
 | **Stateless** | each request carries all it needs; no server session |
 | **Cacheable** | responses declare cacheability (`Cache-Control`, `ETag`) |
 | **Uniform interface** | resources + standard methods + representations |
-| **Layered system** | client can't tell if it hit the origin, a proxy, or a [CDN](../cdn.md) |
+| **Layered system** | client can't tell if it hit the origin, a proxy, or a [CDN](../03-networking-and-delivery/cdn.md) |
 | **Code on demand** *(optional)* | server may ship executable code (rare) |
 
-**Statelessness** is the one that matters most for scale — it lets any server behind a [load balancer](../load-balancing-and-consistent-hashing.md) handle any request.
+**Statelessness** is the one that matters most for scale — it lets any server behind a [load balancer](../03-networking-and-delivery/load-balancing-and-consistent-hashing.md) handle any request.
 
 ## 3. Resource modeling
 

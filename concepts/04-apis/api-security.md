@@ -52,7 +52,7 @@ Cap requests per client/key/IP to stop abuse, brute-force, and accidental overlo
 - Keep API keys/DB creds in a **secrets manager / env vars**, never in code or git.
 - **Rotate** keys/tokens; scope to **least privilege**.
 - Don't leak internals in errors (no stack traces); log securely (mask PII/tokens).
-- Use **non-guessable IDs** (UUIDs) so records can't be enumerated — a [session-01](../../../practice/README.md) miss.
+- Use **non-guessable IDs** (UUIDs) so records can't be enumerated — a [session-01](../../practice/README.md) miss.
 
 ## 6. API gateway (the enforcement point)
 

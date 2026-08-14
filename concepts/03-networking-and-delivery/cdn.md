@@ -2,7 +2,7 @@
 
 ---
 
-A **CDN** is a globally distributed network of **edge servers** that cache content close to users, so requests are served from a nearby edge instead of the distant **origin**. It cuts latency, offloads the origin, and absorbs traffic spikes. Related: [caching](./caching.md).
+A **CDN** is a globally distributed network of **edge servers** that cache content close to users, so requests are served from a nearby edge instead of the distant **origin**. It cuts latency, offloads the origin, and absorbs traffic spikes. Related: [caching](../06-caching/caching.md).
 
 ![CDN architecture — one far origin fans out to many edge PoPs near users, with fast local HIT paths and slower origin MISS paths](./diagrams/cdn.png)
 
