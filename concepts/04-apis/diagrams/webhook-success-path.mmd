@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant Q as Queue / worker
+    participant C as Consumer (your app)
+    participant P as Provider (e.g. Stripe)
+
+    C->>P: 1. Register webhook URL (+ shared secret)
+    Note over P: event occurs (payment.succeeded)
+    P->>C: 2. POST /webhook — payload + X-Signature (HMAC)
+    C->>C: 3. Verify HMAC signature — OK
+    C-->>P: 4. 200 OK (ack fast)
+    C->>Q: 5. Enqueue for async processing
+    Q->>Q: 6. Process (idempotent — dedupe by event id)

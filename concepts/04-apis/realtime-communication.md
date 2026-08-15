@@ -6,12 +6,12 @@ Plain [HTTP](./http.md) is request–response — the client must ask; the serve
 
 ## 1. The four options at a glance
 
-| Technique | Direction | Connection | Latency | Cost / notes |
-|---|---|---|---|---|
-| **Short polling** | client pulls repeatedly | new request each time | poll interval | simplest; wasteful — most polls return nothing |
-| **Long polling** | client pulls, server holds | request held open until data | near real-time | no new protocol; many hanging connections |
-| **SSE** | **server → client** stream | one long-lived HTTP conn | real-time | one-way only; auto-reconnect; text only |
-| **WebSocket** | **full-duplex** (both ways) | one persistent TCP conn (`ws://`) | real-time | richest; needs its own protocol + infra |
+| Technique                    | Direction | Connection | Latency | Cost / notes |
+|------------------------------|---|---|---|---|
+| **Short polling**            | client pulls repeatedly | new request each time | poll interval | simplest; wasteful — most polls return nothing |
+| **Long polling**             | client pulls, server holds | request held open until data | near real-time | no new protocol; many hanging connections |
+| **SSE (Server-Sent Events)** | **server → client** stream | one long-lived HTTP conn | real-time | one-way only; auto-reconnect; text only |
+| **WebSocket**                | **full-duplex** (both ways) | one persistent TCP conn (`ws://`) | real-time | richest; needs its own protocol + infra |
 
 ## 2. Short polling
 

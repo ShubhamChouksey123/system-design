@@ -1,0 +1,10 @@
+sequenceDiagram
+    participant C as Consumer (your app)
+    participant P as Provider (e.g. Stripe)
+
+    P->>C: POST /webhook (event)
+    C--xP: 4xx / timeout / invalid signature
+    Note over P: wait, then retry (exponential backoff)
+    P->>C: retry delivery
+    C--xP: still failing
+    Note over P: dead-letter after max attempts

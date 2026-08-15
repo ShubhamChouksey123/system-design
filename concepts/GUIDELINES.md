@@ -63,21 +63,26 @@ Block elements need a **blank line before and after** them, or many renderers (i
 - **Code fences** (```` ``` ````), **lists**, and **headings** — same rule: blank line before and after.
 - Keep table rows contiguous — no blank line *between* rows.
 
-## 8. Diagrams (Excalidraw)
+## 8. Diagrams (Excalidraw & Mermaid)
 
-Add a diagram when a picture argues the concept better than prose (flows, fan-outs, hub-and-spoke, before/after). Diagrams are **optional** — only when they add real clarity — but they make the resource easier to grasp. See [`cdn.md`](./03-networking-and-delivery/cdn.md) for a live example.
+Add a diagram when a picture argues the concept better than prose (flows, fan-outs, hub-and-spoke, before/after). Diagrams are **optional** — only when they add real clarity. Both types live in a **`diagrams/`** subfolder next to the doc, and the **source is committed beside a same-named `.png`** so the image stays regenerable. Pick the type by shape:
 
-**How to make one** (uses the [`excalidraw-diagram`](../.claude/skills/excalidraw-diagram/SKILL.md) skill):
-1. Author a `.excalidraw` JSON file in a **`diagrams/`** subfolder next to the doc, e.g. `03-networking-and-delivery/diagrams/cdn.excalidraw`.
-2. Render it to PNG (network needed → run with the sandbox disabled):
-   `cd .claude/skills/excalidraw-diagram/references && uv run python render_excalidraw.py <path>.excalidraw`
-3. **View the PNG and iterate** (render → view → fix) until it's clean — this loop is mandatory.
-4. Embed it near the top of the doc: `![plain alt text](./diagrams/name.png)`.
+**Mermaid** — for **flows & sequences** (sequence diagrams, request paths, state). Diff-friendly, edited as text.
+1. Author a `.mmd` in `diagrams/`, e.g. `webhook-success-path.mmd`.
+2. Render it to a **same-named** `.png` (`webhook-success-path.png`).
+3. Embed the PNG: `![plain alt text](./diagrams/webhook-success-path.png)`.
+- Split multi-branch flows into **separate diagrams** (e.g. success vs failure) rather than one `alt/else` — easier to read. See [`webhooks.md`](./04-apis/webhooks.md).
 
-**Rules:**
-- Make the diagram **argue** — the shape mirrors the concept (fan-out, timeline, convergence), not just labeled boxes. Follow the skill's methodology.
-- **Alt text must be plain** — no parentheses/brackets, they break Markdown image rendering.
-- **Commit both** the `.excalidraw` source (editable) and the `.png` (renders on GitHub).
+**Excalidraw** — for **free-form architecture** (boxes, hub-and-spoke, fan-out) via the [`excalidraw-diagram`](../.claude/skills/excalidraw-diagram/SKILL.md) skill. See [`cdn.md`](./03-networking-and-delivery/cdn.md).
+1. Author a `.excalidraw` JSON in `diagrams/`, e.g. `cdn.excalidraw`.
+2. Render to PNG (network needed → sandbox disabled): `cd .claude/skills/excalidraw-diagram/references && uv run python render_excalidraw.py <path>.excalidraw`.
+3. **View the PNG and iterate** (render → view → fix) until clean — this loop is mandatory.
+4. Embed: `![plain alt text](./diagrams/name.png)`.
+- Make it **argue** — the shape mirrors the concept (fan-out, timeline, convergence), not just labeled boxes.
+
+**Rules (both types):**
+- **Alt text must be plain** — no parentheses/brackets; they break Markdown image rendering.
+- **Commit the source + the `.png`, same base name** — `.mmd` for Mermaid, `.excalidraw` for Excalidraw.
 
 ## 9. Before you save — checklist
 
@@ -90,7 +95,7 @@ Add a diagram when a picture argues the concept better than prose (flows, fan-ou
 □ Blank line before & after every table, list, and code block (§7)
 □ Every number ties to a decision
 □ Names real-world examples / technologies (e.g. Kafka, SQS, NGINX)
-□ Diagram (if any): argues the concept, plain alt text, source + PNG committed (§8)
+□ Diagram (if any): argues the concept, plain alt text, source (.mmd/.excalidraw) + same-named PNG committed (§8)
 □ Added a row to concepts/README.md
 □ Relative cross-links resolve
 ```
