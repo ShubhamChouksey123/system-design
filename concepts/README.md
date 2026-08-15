@@ -7,10 +7,10 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 ## 📊 Progress Tracking
 
-Track your overall concepts: **8 / 47 completed (17%)** *(read + revised)*
+Track your overall concepts: **9 / 47 completed (19%)** *(read + revised)*
 
 - **Written:** 27 / 47 — **57%** *(20 in backlog — the `*(todo)*` rows)*
-- **Read:** 8 / 47 — **17%**
+- **Read:** 9 / 47 — **19%**
 - **Revised:** 0 / 47 — **0%**
 
 > Tick `☐ → ✅` in the table as you go; run `scripts/progress.sh` to refresh these counts.
@@ -39,7 +39,7 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | | [GraphQL](./04-apis/graphql.md) | ✅ | ☐ | 2026-08-15            |
 | | [Real-Time Communication](./04-apis/realtime-communication.md) | ✅ | ☐ | 2026-08-15            |
 | | [Webhooks](./04-apis/webhooks.md) | ✅ | ☐ | 2026-08-15            |
-| | [Authentication & Authorization](./04-apis/authentication-and-authorization.md) | ☐ | ☐ | —             |
+| | [Authentication & Authorization](./04-apis/authentication-and-authorization.md) | ✅ | ☐ | 2026-08-15             |
 | | [SSO: SAML, OAuth 2.0 & OIDC](./04-apis/oauth-oidc-saml.md) | ☐ | ☐ | —             |
 | | [API Security](./04-apis/api-security.md) | ☐ | ☐ | —             |
 | | Serialization Formats — JSON / Protobuf / Avro *(todo)* | ☐ | ☐ | —             |

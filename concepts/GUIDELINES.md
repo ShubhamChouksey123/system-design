@@ -69,7 +69,7 @@ Add a diagram when a picture argues the concept better than prose (flows, fan-ou
 
 **Mermaid** — for **flows & sequences** (sequence diagrams, request paths, state). Diff-friendly, edited as text.
 1. Author a `.mmd` in `diagrams/`, e.g. `webhook-success-path.mmd`.
-2. Render it to a **same-named** `.png` (`webhook-success-path.png`).
+2. Render it to a **same-named** `.png` at **3× scale** so it stays crisp when zoomed (default 1× looks pixelated): `npx -y @mermaid-js/mermaid-cli@11 -i name.mmd -o name.png -b white -s 3` (run with the sandbox disabled — the renderer needs network).
 3. Embed the PNG: `![plain alt text](./diagrams/webhook-success-path.png)`.
 - Split multi-branch flows into **separate diagrams** (e.g. success vs failure) rather than one `alt/else` — easier to read. See [`webhooks.md`](./04-apis/webhooks.md).
 

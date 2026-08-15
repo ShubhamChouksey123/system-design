@@ -1,0 +1,15 @@
+flowchart LR
+    U([User])
+    B[Browser]
+    AS[Auth Server]
+    BE[Backend Service]
+    SS[(Session Store)]
+
+    U -->|1. Log In username + password| B
+    B -->|2. Authenticate| AS
+    AS -->|3. Create session| SS
+    AS -->|4. Cookie with session-ID| B
+    U -->|5. Access page| B
+    B -->|6. Request + cookie| BE
+    BE -->|7. Verify session| SS
+    BE -->|8. Response data| B

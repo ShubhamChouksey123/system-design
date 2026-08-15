@@ -1,0 +1,21 @@
+flowchart LR
+    U([User])
+    B[Browser]
+    AS[Auth Server]
+    BE[Backend Service]
+    K[/Signing / Verify Key/]
+    SS[("Session Store
+    DB / cache")]
+
+    U -->|1. Log In username + password| B
+    B -->|2. Authenticate| AS
+    AS -->|3. Sign self-contained JWT with key| K
+    AS -->|4. Return JWT token| B
+    U -->|5. Access page| B
+    B -->|6. Request + Bearer JWT| BE
+    BE -->|7. Verify signature locally with key| K
+    BE -->|8. Response data| B
+    BE -.->|✗ NO DB / cache lookup| SS
+
+    class SS notneeded
+    classDef notneeded fill:#f4f4f4,stroke:#bbbbbb,stroke-dasharray:5 5,color:#999999

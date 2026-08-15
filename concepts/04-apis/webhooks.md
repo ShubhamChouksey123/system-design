@@ -8,13 +8,13 @@ A **reverse API**: instead of the client polling for changes, the server **calls
 
 A **webhook** is a user-registered URL that a provider sends an HTTP `POST` to when an event occurs (`payment.succeeded`, `build.failed`). The consumer runs an endpoint that receives these callbacks — push, not pull.
 
-**Happy path** — signature valid, processed asynchronously:
+**Happy path** — the consumer registers its URL; the provider POSTs a signed event; the consumer verifies the HMAC, acks `200` fast, then enqueues the event for **idempotent async** processing:
 
-![Webhook success flow — consumer registers its URL, the provider POSTs a signed event, the consumer verifies the HMAC, acks 200 fast, then enqueues the event for idempotent async processing](./diagrams/webhook-success-path.png)
+![Webhook success flow](./diagrams/webhook-success-path.png)
 
-**Failure path** — bad response or timeout, so the provider retries then dead-letters:
+**Failure path** — the provider POSTs an event; the consumer returns `4xx` or times out, so the provider **retries with exponential backoff** and **dead-letters** the event after max attempts:
 
-![Webhook failure flow — the provider POSTs an event, the consumer returns 4xx or times out, the provider waits and retries with exponential backoff, and dead-letters the event after max attempts](./diagrams/webhook-failure-path.png)
+![Webhook failure flow](./diagrams/webhook-failure-path.png)
 
 ## 2. Webhooks vs polling
 

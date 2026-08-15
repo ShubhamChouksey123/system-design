@@ -22,9 +22,9 @@ Securing an API: proving **who** a caller is and controlling **what** they may d
 
 Stateless tokens fit horizontally-scaled, [stateless](../08-distributed-systems/single-point-of-failure.md) services — the common choice for APIs.
 
-**Session-based flow** — the server creates a session and stores it; the client holds only a session-ID cookie, sent on every request for the server to verify:
+**Session-based flow** — the user logs in with **username + password**; the auth server creates a session in a **session store** and returns a **session-ID cookie**; later requests send the cookie and the server verifies it against the store before responding:
 
-![Session-based authentication flow — user logs in, the auth server creates a session in a session store and returns a session-ID cookie; later requests send the cookie and the backend verifies it against the store before responding](./diagrams/session-auth.png)
+![Session-based authentication flow](./diagrams/session-auth.png)
 
 ## 3. API keys
 
@@ -44,9 +44,9 @@ eyJhbGciOiJIUzI1NiJ9 . eyJzdWIiOiJ1MTIzIiwiZXhwIjox..} . <signature>
    header (alg)            payload (claims)                 verifies integrity
 ```
 
-**JWT flow** — the server signs a self-contained token; the backend verifies its signature with a key **locally**, with no session-store lookup (contrast the session-based flow in §2):
+**JWT flow** — the auth server signs a **self-contained** token; later requests send it as a **Bearer token** and the backend verifies the signature **locally with a key** — **no session-store / DB / cache lookup** on each request (contrast the session-based flow in §2, which hits the store every time):
 
-![JWT-based authentication flow — the auth server authenticates the user, creates and signs a JWT with a key, and returns the token; later requests send it as a Bearer token and the backend verifies the signature locally with the key, without any per-user session-store lookup](./diagrams/jwt-auth.png)
+![JWT-based authentication flow](./diagrams/jwt-auth.png)
 
 ## 5. OAuth2, OIDC & SAML (delegated auth / SSO)
 
