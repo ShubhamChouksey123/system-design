@@ -9,7 +9,7 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 Track your overall concepts: **19 / 47 completed (40%)** *(read + revised)*
 
-- **Written:** 33 / 47 — **70%** *(14 in backlog — the `*(todo)*` rows)*
+- **Written:** 34 / 47 — **72%** *(13 in backlog — the `*(todo)*` rows)*
 - **Read:** 19 / 47 — **40%**
 - **Revised:** 0 / 47 — **0%**
 
@@ -53,7 +53,7 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | | [OLTP vs OLAP / Data Warehouse](./05-databases-and-storage/oltp-vs-olap.md) | ☐ | ☐ | —             |
 | | Geospatial Indexing — geohash, quadtree *(todo)* | ☐ | ☐ | —             |
 | | Bloom Filters *(todo)* | ☐ | ☐ | —             |
-| | Unique ID Generation — Snowflake, UUID *(todo)* | ☐ | ☐ | —             |
+| | [Unique ID Generation — Snowflake, UUID](./05-databases-and-storage/unique-id-generation.md) | ☐ | ☐ | —             |
 | **06 · Caching** | [Caching](./06-caching/caching.md) | ☐ | ☐ | —             |
 | | [Distributed Caching — Redis & Memcached](./06-caching/redis-and-memcached.md) | ☐ | ☐ | —             |
 | **07 · Messaging & Events** | [Message Queue](./07-messaging-and-events/message-queue.md) | ☐ | ☐ | —             |
