@@ -1,0 +1,11 @@
+# This is a documentation / study-notes repository (Markdown).
+# Keep GitHub's language detection from mislabeling it based on tooling code.
+
+# Vendored tooling — not part of the published content.
+.claude/**      linguist-vendored
+scripts/**      linguist-vendored
+
+# Treat the notes as documentation (they already are Markdown/prose).
+concepts/**     linguist-documentation
+practice/**     linguist-documentation
+docs/**         linguist-documentation
