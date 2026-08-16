@@ -1,0 +1,3 @@
+# Docs site toolchain — install with:  pip install -r requirements-docs.txt
+# Then preview locally with:            mkdocs serve
+mkdocs-material>=9.5

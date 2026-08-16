@@ -73,7 +73,7 @@ Add a diagram when a picture argues the concept better than prose (flows, fan-ou
 3. Embed the PNG: `![plain alt text](./diagrams/webhook-success-path.png)`.
 - Split multi-branch flows into **separate diagrams** (e.g. success vs failure) rather than one `alt/else` — easier to read. See [`webhooks.md`](./04-apis/webhooks.md).
 
-**Excalidraw** — for **free-form architecture** (boxes, hub-and-spoke, fan-out) via the [`excalidraw-diagram`](../.claude/skills/excalidraw-diagram/SKILL.md) skill. See [`cdn.md`](./03-networking-and-delivery/cdn.md).
+**Excalidraw** — for **free-form architecture** (boxes, hub-and-spoke, fan-out) via the [`excalidraw-diagram`](https://github.com/ShubhamChouksey123/system-design/blob/master/.claude/skills/excalidraw-diagram/SKILL.md) skill. See [`cdn.md`](./03-networking-and-delivery/cdn.md).
 1. Author a `.excalidraw` JSON in `diagrams/`, e.g. `cdn.excalidraw`.
 2. Render to PNG (network needed → sandbox disabled): `cd .claude/skills/excalidraw-diagram/references && uv run python render_excalidraw.py <path>.excalidraw`.
 3. **View the PNG and iterate** (render → view → fix) until clean — this loop is mandatory.

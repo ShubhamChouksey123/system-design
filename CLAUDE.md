@@ -27,6 +27,9 @@ practice/            mock-interview log & prep playbook
   NN-session/        one folder per mock (README.md = analyzed write-up + diagram; script.md = raw transcript)
 docs/                book PDF (gitignored) + TODO.md (backlog)
 .claude/skills/excalidraw-diagram/   diagram-rendering skill (render via uv; GUIDELINES §8)
+mkdocs.yml           MkDocs Material site config (see "Docs site" below)
+site-docs/           thin MkDocs root: symlinks to concepts/, practice/, docs/, README (don't edit content here)
+.github/workflows/   GitHub Actions — builds & deploys the docs site to Pages
 tmp.md               user's scratchpad / prompt buffer (gitignored — not a deliverable)
 ```
 
@@ -69,3 +72,7 @@ Audience is a senior engineer prepping for interviews. Every estimate/number mus
 ## Git
 
 Repo is git-initialized; author is configured locally (not `--global`). `docs/*.pdf` and `tmp.md` are gitignored — do not commit them. Commit/push only when the user asks.
+
+## Docs site (MkDocs Material → GitHub Pages)
+
+The repo publishes as a website via **MkDocs Material**, configured in `mkdocs.yml` and auto-deployed by `.github/workflows/deploy-docs.yml` on push to `master`. To avoid moving content, `docs_dir` is a thin **`site-docs/`** folder holding only **symlinks** (`concepts`, `practice`, `docs` → their real dirs; `index.md` → root `README.md`); MkDocs follows them. `site_dir: site` (gitignored build output). Internal authoring files are kept off the menu via `exclude_docs` / `not_in_nav`. Preview locally: `pip install -r requirements-docs.txt && mkdocs serve`. CI runs `mkdocs build --strict`, so **any broken relative link fails the build** — keep cross-links valid. When adding a concept, also add it to the `nav:` in `mkdocs.yml` (the index table in `concepts/README.md` is separate).

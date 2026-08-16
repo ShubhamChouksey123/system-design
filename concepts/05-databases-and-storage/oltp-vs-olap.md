@@ -2,7 +2,7 @@
 
 ---
 
-Two very different jobs a "database" does: **running the app** (many tiny reads/writes) vs **analyzing the business** (few huge scans). You don't force both onto one store — **OLTP** powers the live app, **OLAP** (a **data warehouse**) powers reports and dashboards. Builds on [database fundamentals](./databases-fundamentals.md); OLAP stores are usually [columnar](./serialization-formats.md) and often live on [object storage](./object-blob-storage.md).
+Two very different jobs a "database" does: **running the app** (many tiny reads/writes) vs **analyzing the business** (few huge scans). You don't force both onto one store — **OLTP** powers the live app, **OLAP** (a **data warehouse**) powers reports and dashboards. Builds on [database fundamentals](./databases-fundamentals.md); OLAP stores are usually [columnar](../04-apis/serialization-formats.md) and often live on [object storage](./object-blob-storage.md).
 
 ## 1. The two workloads
 
@@ -29,7 +29,7 @@ Two very different jobs a "database" does: **running the app** (many tiny reads/
 
 - **Row storage (OLTP)** keeps a whole record contiguously → cheap to read/write one row.
 - **Columnar storage (OLAP)** keeps each **column** contiguously → an aggregation reads **only the columns it needs**, skipping the rest, and similar values compress hugely.
-- That's why warehouses use columnar formats ([Parquet](./serialization-formats.md), ORC) — a `SUM(revenue)` touches one column, not entire rows.
+- That's why warehouses use columnar formats ([Parquet](../04-apis/serialization-formats.md), ORC) — a `SUM(revenue)` touches one column, not entire rows.
 
 ## 4. Getting data from OLTP → OLAP (ETL / ELT)
 

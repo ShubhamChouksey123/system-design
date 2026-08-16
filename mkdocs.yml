@@ -1,0 +1,131 @@
+site_name: System Design Interview Prep
+site_description: >-
+  Free system design interview preparation for senior software engineers —
+  concept notes, cheat sheets, back-of-the-envelope estimation, and scored
+  mock-interview transcripts.
+site_url: https://shubhamchouksey123.github.io/system-design/
+site_author: Shubham Chouksey
+repo_url: https://github.com/ShubhamChouksey123/system-design
+repo_name: ShubhamChouksey123/system-design
+edit_uri: edit/master/
+copyright: >-
+  Content licensed CC BY 4.0 · inspired by <em>System Design Interview</em> by Alex Xu
+
+# `site-docs/` is a thin MkDocs root: it contains only symlinks to the real content
+# (concepts/, practice/, docs/) plus index.md → README.md, so files are never moved
+# or duplicated. MkDocs follows the symlinks when building.
+docs_dir: site-docs
+site_dir: site
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.details
+
+# Non-content files that live in the repo root but must not become site pages.
+exclude_docs: |
+  CLAUDE.md
+  tmp.md
+  requirements-docs.txt
+  LICENSE
+  scripts/
+  docs/*.pdf
+  *.mmd
+  *.excalidraw
+
+# Built but intentionally kept out of the nav menu (so their inbound links still resolve).
+not_in_nav: |
+  concepts/GUIDELINES.md
+  docs/TODO.md
+
+nav:
+  - Home: index.md
+  - Concepts:
+      - Overview & progress: concepts/README.md
+      - "00 · Interview Framework": concepts/00-framework/system-design-interview-framework.md
+      - "01 · Estimation":
+          - Back-of-the-Envelope Estimation: concepts/01-envelope-estimation/back-of-the-envelope-estimation.md
+          - Worked Examples: concepts/01-envelope-estimation/back-of-the-envelope-examples.md
+      - "02 · Foundations":
+          - Basics — Cloud, API, Scalability: concepts/02-foundations/basics.md
+          - Monolithic vs Microservices: concepts/02-foundations/monolithic-vs-microservices.md
+      - "03 · Networking & Delivery":
+          - Load Balancing & Consistent Hashing: concepts/03-networking-and-delivery/load-balancing-and-consistent-hashing.md
+          - Content Delivery Network (CDN): concepts/03-networking-and-delivery/cdn.md
+      - "04 · APIs":
+          - API Design: concepts/04-apis/api-design.md
+          - HTTP — Methods, Status, Headers: concepts/04-apis/http.md
+          - HTTP Versions (1.0 → 3): concepts/04-apis/http-versions.md
+          - REST: concepts/04-apis/rest.md
+          - gRPC: concepts/04-apis/grpc.md
+          - GraphQL: concepts/04-apis/graphql.md
+          - Real-Time Communication: concepts/04-apis/realtime-communication.md
+          - Webhooks: concepts/04-apis/webhooks.md
+          - Authentication & Authorization: concepts/04-apis/authentication-and-authorization.md
+          - SSO — SAML, OAuth 2.0 & OIDC: concepts/04-apis/oauth-oidc-saml.md
+          - API Security: concepts/04-apis/api-security.md
+          - Serialization — JSON / Protobuf / Avro: concepts/04-apis/serialization-formats.md
+          - Signing Algorithms — RSA / SHA: concepts/04-apis/signing-algorithms.md
+      - "05 · Databases & Storage":
+          - Databases — Fundamentals: concepts/05-databases-and-storage/databases-fundamentals.md
+          - Databases — Scaling: concepts/05-databases-and-storage/databases-scaling.md
+          - NoSQL Databases: concepts/05-databases-and-storage/nosql-databases.md
+          - Sharding / Partitioning: concepts/05-databases-and-storage/sharding-and-partitioning.md
+          - Object / Blob Storage: concepts/05-databases-and-storage/object-blob-storage.md
+          - Full-Text Search / Inverted Index: concepts/05-databases-and-storage/full-text-search.md
+          - OLTP vs OLAP / Data Warehouse: concepts/05-databases-and-storage/oltp-vs-olap.md
+      - "06 · Caching":
+          - Caching: concepts/06-caching/caching.md
+          - Distributed Caching — Redis & Memcached: concepts/06-caching/redis-and-memcached.md
+      - "07 · Messaging & Events":
+          - Message Queue: concepts/07-messaging-and-events/message-queue.md
+          - Apache Kafka: concepts/07-messaging-and-events/apache-kafka.md
+          - Event-Driven Architecture: concepts/07-messaging-and-events/event-driven-architecture.md
+      - "08 · Distributed Systems":
+          - Single Point of Failure: concepts/08-distributed-systems/single-point-of-failure.md
+  - Mock Interviews:
+      - Overview & scorecards: practice/README.md
+      - Answer Framework (Playbook): practice/answer-framework.md
+      - "Session 01 — URL Shortener": practice/01-session/README.md
