@@ -7,10 +7,10 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 ## 📊 Progress Tracking
 
-Track your overall concepts: **18 / 47 completed (38%)** *(read + revised)*
+Track your overall concepts: **19 / 47 completed (40%)** *(read + revised)*
 
 - **Written:** 32 / 47 — **68%** *(15 in backlog — the `*(todo)*` rows)*
-- **Read:** 18 / 47 — **38%**
+- **Read:** 19 / 47 — **40%**
 - **Revised:** 0 / 47 — **0%**
 
 > Tick `☐ → ✅` in the table as you go; run `scripts/progress.sh` to refresh these counts.
@@ -49,7 +49,7 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | | [NoSQL Databases](./05-databases-and-storage/nosql-databases.md) | ✅ | ☐ | 2026-08-16             |
 | | [Sharding / Partitioning](./05-databases-and-storage/sharding-and-partitioning.md) | ✅ | ☐ | 2026-08-16             |
 | | [Object / Blob Storage](./05-databases-and-storage/object-blob-storage.md) | ✅ | ☐ | 2026-08-16             |
-| | [Full-Text Search / Inverted Index](./05-databases-and-storage/full-text-search.md) | ☐ | ☐ | —             |
+| | [Full-Text Search / Inverted Index](./05-databases-and-storage/full-text-search.md) | ✅ | ☐ | 2026-08-16    |
 | | OLTP vs OLAP / Data Warehouse *(todo)* | ☐ | ☐ | —             |
 | | Geospatial Indexing — geohash, quadtree *(todo)* | ☐ | ☐ | —             |
 | | Bloom Filters *(todo)* | ☐ | ☐ | —             |
