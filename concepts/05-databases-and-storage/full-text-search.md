@@ -70,7 +70,7 @@ Searching mirrors indexing: the query runs through the **same analysis pipeline*
 
 **Ranking the matched docs:**
 
-- **TF-IDF** — a term matters more if it's **frequent in this doc** (TF) but **rare across all docs** (IDF). "database" in a short doc about databases ranks high; "the" ranks near zero.
+- **TF-IDF(Term Frequency-Inverse Document Frequency)** — a term matters more if it's **frequent in this doc** (TF) but **rare across all docs** (IDF). "database" in a short doc about databases ranks high; "the" ranks near zero.
 - **BM25** — the modern default (Lucene/Elasticsearch); a refined TF-IDF that dampens very frequent terms and accounts for document length.
 - Engines add **fuzzy matching** (typo tolerance), **phrase** and **prefix** queries, **facets**, and **highlighting**.
 

@@ -9,7 +9,7 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 Track your overall concepts: **19 / 47 completed (40%)** *(read + revised)*
 
-- **Written:** 32 / 47 — **68%** *(15 in backlog — the `*(todo)*` rows)*
+- **Written:** 33 / 47 — **70%** *(14 in backlog — the `*(todo)*` rows)*
 - **Read:** 19 / 47 — **40%**
 - **Revised:** 0 / 47 — **0%**
 
@@ -50,7 +50,7 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | | [Sharding / Partitioning](./05-databases-and-storage/sharding-and-partitioning.md) | ✅ | ☐ | 2026-08-16             |
 | | [Object / Blob Storage](./05-databases-and-storage/object-blob-storage.md) | ✅ | ☐ | 2026-08-16             |
 | | [Full-Text Search / Inverted Index](./05-databases-and-storage/full-text-search.md) | ✅ | ☐ | 2026-08-16    |
-| | OLTP vs OLAP / Data Warehouse *(todo)* | ☐ | ☐ | —             |
+| | [OLTP vs OLAP / Data Warehouse](./05-databases-and-storage/oltp-vs-olap.md) | ☐ | ☐ | —             |
 | | Geospatial Indexing — geohash, quadtree *(todo)* | ☐ | ☐ | —             |
 | | Bloom Filters *(todo)* | ☐ | ☐ | —             |
 | | Unique ID Generation — Snowflake, UUID *(todo)* | ☐ | ☐ | —             |

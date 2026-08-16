@@ -4,7 +4,7 @@
 
 Each `NN-session/` folder holds a `script.md` with the full transcript, the interviewer's scorecard, and per-session tips. This index rolls them up so progress and recurring weak spots are visible at a glance.
 
-📣 **Rehearsal tools:** work through the [Answer Framework playbook](./answer-framework.md) — the 8 steps to cover in every answer — and run the [framework's in-the-room checklist](../concepts/02-framework/system-design-interview-framework.md#4-in-the-room-checklist-quick-reference) as a dry-run before each mock. Structured delivery is the consistent weak spot (see [How to Improve](#how-to-improve)).
+📣 **Rehearsal tools:** work through the [Answer Framework playbook](./answer-framework.md) — the 8 steps to cover in every answer — and run the [framework's in-the-room checklist](../concepts/00-framework/system-design-interview-framework.md#4-in-the-room-checklist-quick-reference) as a dry-run before each mock. Structured delivery is the consistent weak spot (see [How to Improve](#how-to-improve)).
 
 ---
 
@@ -16,7 +16,7 @@ Scores are **/10** across the mock platform's five axes. Verdict: ✅ Pass (≥ 
 |---|---------|------|---------|:----:|:------:|:------------:|:------------------:|:-----:|:-------:|
 | [01](01-session/script.md) | URL shortener (bit.ly / TinyURL) | Read-heavy KV store + analytics | ⚠️ Borderline | 6.0 | 6.0 | 6.5 | 5.5 | 5.5 | **5.9** |
 
-**Related concepts**: [Back-of-the-Envelope Estimation](../concepts/01-envelope-estimation/back-of-the-envelope-estimation.md) (01) · [Interview Framework](../concepts/02-framework/system-design-interview-framework.md) (01) · [Load Balancing & Consistent Hashing](../concepts/00-fundamentals/load-balancing-and-consistent-hashing.md) (01)
+**Related concepts**: [Back-of-the-Envelope Estimation](../concepts/01-envelope-estimation/back-of-the-envelope-estimation.md) (01) · [Interview Framework](../concepts/00-framework/system-design-interview-framework.md) (01) · [Load Balancing & Consistent Hashing](../concepts/03-networking-and-delivery/load-balancing-and-consistent-hashing.md) (01)
 
 ---
 
@@ -69,7 +69,7 @@ Grouped by the axis interviewers score, weakest axis first. Session tags like `[
 ### Design Skills — `6.0`
 - **Go deep on key generation** — compare hashing (collision handling), base62 of a counter, pre-generated key pools, and the **security implication of predictable IDs**. `[S01]`
 - **Design the data model for the use cases** — add analytics fields (click count, user agent, referrer, timestamp) when analytics is a requirement. `[S01]`
-- Know **cache eviction/invalidation**: LRU/LFU, TTL, and how expired URLs leave the cache. `[S01]` → [caching](../concepts/00-fundamentals/caching.md)
+- Know **cache eviction/invalidation**: LRU/LFU, TTL, and how expired URLs leave the cache. `[S01]` → [caching](../concepts/06-caching/caching.md)
 
 ### Problem Solving — `6.5` (strongest)
 - Keep leading with estimation and async-decoupling instincts — both landed well. `[S01]`
@@ -79,7 +79,7 @@ Grouped by the axis interviewers score, weakest axis first. Session tags like `[
 
 ## Recurring Action Items
 
-1. **Open with a 5-minute requirements checklist** on the canvas (functional / non-functional / analytics) — [framework](../concepts/02-framework/system-design-interview-framework.md) Step 1.
+1. **Open with a 5-minute requirements checklist** on the canvas (functional / non-functional / analytics) — [framework](../concepts/00-framework/system-design-interview-framework.md) Step 1.
 2. **Study the recurring fundamentals** that cut across problems: **consistent hashing, base62 encoding, HTTP 3xx redirects, cache eviction (LRU/LFU/TTL), sharding/partitioning.**
 3. **Label diagrams** — data + protocol on arrows, API signatures on the canvas.
 4. For every decision, verbalize **"Option A trades X; Option B trades Y; I'd pick ___ because ___."**
@@ -99,7 +99,7 @@ Session 01 splits into two different kinds of gap:
 ### The plan
 
 - **Build the concept library for the recurring gaps** — next concept doc: **consistent hashing** (already flagged TODO in the Sessions table), then base62 key generation and HTTP redirect semantics. Pull these from the Alex Xu book chapters.
-- **Rehearse the framework's 4-step flow out loud** using the [in-the-room checklist](../concepts/02-framework/system-design-interview-framework.md#4-in-the-room-checklist-quick-reference), forcing the requirements checklist and labeled diagram every time.
+- **Rehearse the framework's 4-step flow out loud** using the [in-the-room checklist](../concepts/00-framework/system-design-interview-framework.md#4-in-the-room-checklist-quick-reference), forcing the requirements checklist and labeled diagram every time.
 - **Re-attempt the URL shortener** after studying the gaps and compare scores — the same-problem re-solve is the clearest signal of progress.
 
 > **Implication**: with only knowledge + delivery both in play, split practice time — ~60% studying the recurring fundamentals, ~40% rehearsing structured narration. Re-score the same problem to confirm the gaps closed.
