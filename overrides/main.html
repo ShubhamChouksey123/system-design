@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{#
+  Theme override for extra <head> content.
+
+  Google Search Console verification (HTML-tag method):
+  1. In Search Console, add a URL-prefix property for
+     https://shubhamchouksey123.github.io/system-design/
+  2. Choose the "HTML tag" verification method — Google shows a tag like:
+       <meta name="google-site-verification" content="AbCd1234..." />
+  3. Copy ONLY the content value and paste it below, replacing REPLACE_WITH_TOKEN.
+  4. Commit + push → wait for the Pages deploy → click "Verify" in Search Console.
+#}
+{% block extrahead %}
+  {% set gsc_token = "REPLACE_WITH_TOKEN" %}
+  {% if gsc_token != "REPLACE_WITH_TOKEN" %}
+  <meta name="google-site-verification" content="{{ gsc_token }}">
+  {% endif %}
+{% endblock %}

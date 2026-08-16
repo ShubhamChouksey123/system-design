@@ -19,6 +19,7 @@ site_dir: site
 
 theme:
   name: material
+  custom_dir: overrides        # holds the Search Console verification tag (overrides/main.html)
   icon:
     repo: fontawesome/brands/github
   palette:
@@ -79,6 +80,7 @@ exclude_docs: |
 not_in_nav: |
   concepts/GUIDELINES.md
   docs/TODO.md
+  practice/01-session/script.md
 
 nav:
   - Home: index.md
@@ -116,6 +118,7 @@ nav:
           - Object / Blob Storage: concepts/05-databases-and-storage/object-blob-storage.md
           - Full-Text Search / Inverted Index: concepts/05-databases-and-storage/full-text-search.md
           - OLTP vs OLAP / Data Warehouse: concepts/05-databases-and-storage/oltp-vs-olap.md
+          - Unique ID Generation — Snowflake & UUID: concepts/05-databases-and-storage/unique-id-generation.md
       - "06 · Caching":
           - Caching — Strategies & Eviction: concepts/06-caching/caching.md
           - Distributed Caching — Redis & Memcached: concepts/06-caching/redis-and-memcached.md
