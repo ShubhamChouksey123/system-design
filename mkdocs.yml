@@ -87,7 +87,7 @@ nav:
       - "00 · Interview Framework": concepts/00-framework/system-design-interview-framework.md
       - "01 · Estimation":
           - Back-of-the-Envelope Estimation: concepts/01-envelope-estimation/back-of-the-envelope-estimation.md
-          - Worked Examples: concepts/01-envelope-estimation/back-of-the-envelope-examples.md
+          - Worked Examples — QPS, Storage & Bandwidth: concepts/01-envelope-estimation/back-of-the-envelope-examples.md
       - "02 · Foundations":
           - Basics — Cloud, API, Scalability: concepts/02-foundations/basics.md
           - Monolithic vs Microservices: concepts/02-foundations/monolithic-vs-microservices.md
@@ -98,11 +98,11 @@ nav:
           - API Design: concepts/04-apis/api-design.md
           - HTTP — Methods, Status, Headers: concepts/04-apis/http.md
           - HTTP Versions (1.0 → 3): concepts/04-apis/http-versions.md
-          - REST: concepts/04-apis/rest.md
-          - gRPC: concepts/04-apis/grpc.md
-          - GraphQL: concepts/04-apis/graphql.md
-          - Real-Time Communication: concepts/04-apis/realtime-communication.md
-          - Webhooks: concepts/04-apis/webhooks.md
+          - REST API Design: concepts/04-apis/rest.md
+          - gRPC & Protocol Buffers: concepts/04-apis/grpc.md
+          - GraphQL API: concepts/04-apis/graphql.md
+          - Real-Time Communication — WebSocket & SSE: concepts/04-apis/realtime-communication.md
+          - Webhooks — Reverse APIs: concepts/04-apis/webhooks.md
           - Authentication & Authorization: concepts/04-apis/authentication-and-authorization.md
           - SSO — SAML, OAuth 2.0 & OIDC: concepts/04-apis/oauth-oidc-saml.md
           - API Security: concepts/04-apis/api-security.md
@@ -117,10 +117,10 @@ nav:
           - Full-Text Search / Inverted Index: concepts/05-databases-and-storage/full-text-search.md
           - OLTP vs OLAP / Data Warehouse: concepts/05-databases-and-storage/oltp-vs-olap.md
       - "06 · Caching":
-          - Caching: concepts/06-caching/caching.md
+          - Caching — Strategies & Eviction: concepts/06-caching/caching.md
           - Distributed Caching — Redis & Memcached: concepts/06-caching/redis-and-memcached.md
       - "07 · Messaging & Events":
-          - Message Queue: concepts/07-messaging-and-events/message-queue.md
+          - Message Queues & Brokers: concepts/07-messaging-and-events/message-queue.md
           - Apache Kafka: concepts/07-messaging-and-events/apache-kafka.md
           - Event-Driven Architecture: concepts/07-messaging-and-events/event-driven-architecture.md
       - "08 · Distributed Systems":
