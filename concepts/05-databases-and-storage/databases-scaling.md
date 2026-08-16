@@ -30,13 +30,11 @@ Keep **copies** of the data on multiple nodes for availability and read scaling.
 - **Master–Master (multi-leader)** allows writes on several nodes but must resolve **write conflicts**.
 - **Quorum** — read/write from a majority so that `R + W > N` balances consistency vs availability (Dynamo-style).
 
-## 4. Partitioning & sharding
+## 4. Partitioning & sharding (last resort)
 
-Split one big dataset into pieces so no single node holds it all.
-- **Vertical partitioning** — split by **columns/tables** (e.g. move rarely-used or large columns out).
-- **Horizontal partitioning / sharding** — split by **rows** across nodes, each shard holding a subset.
-- **Shard key** choice is critical: a bad key creates **hotspots** (uneven load). Use hashing / **consistent hashing** to distribute keys and minimize resharding.
-- Cost: **cross-shard queries and transactions become hard**; joins may move to application code.
+When a single node can't hold the data or take the write volume, split the dataset across nodes — **vertical** (by columns) or **horizontal / sharding** (by rows). It's the highest-complexity step, so it comes last.
+
+→ The **shard key**, placement strategies (range / hash / consistent hashing), and the hard parts (cross-shard queries & transactions) are the deep dive in **[Sharding / Partitioning](./sharding-and-partitioning.md)**.
 
 ## 5. Putting it together
 

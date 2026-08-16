@@ -7,10 +7,10 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 ## 📊 Progress Tracking
 
-Track your overall concepts: **13 / 47 completed (28%)** *(read + revised)*
+Track your overall concepts: **18 / 47 completed (38%)** *(read + revised)*
 
-- **Written:** 30 / 47 — **64%** *(17 in backlog — the `*(todo)*` rows)*
-- **Read:** 13 / 47 — **28%**
+- **Written:** 32 / 47 — **68%** *(15 in backlog — the `*(todo)*` rows)*
+- **Read:** 18 / 47 — **38%**
 - **Revised:** 0 / 47 — **0%**
 
 > Tick `☐ → ✅` in the table as you go; run `scripts/progress.sh` to refresh these counts.
@@ -44,12 +44,12 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | | [API Security](./04-apis/api-security.md) | ✅ | ☐ | 2026-08-15             |
 | | [Serialization Formats — JSON / Protobuf / Avro](./04-apis/serialization-formats.md) | ✅ | ☐ | 2026-08-15             |
 | | [Signing Algorithms — symmetric / asymmetric, RSA, SHA](./04-apis/signing-algorithms.md) | ✅ | ☐ | 2026-08-16    |
-| **05 · Databases & Storage** | [Databases — Fundamentals](./05-databases-and-storage/databases-fundamentals.md) | ☐ | ☐ | —             |
-| | [Databases — Scaling](./05-databases-and-storage/databases-scaling.md) | ☐ | ☐ | —             |
-| | [NoSQL Databases](./05-databases-and-storage/nosql-databases.md) | ☐ | ☐ | —             |
-| | [Sharding / Partitioning](./05-databases-and-storage/sharding-and-partitioning.md) | ☐ | ☐ | —             |
-| | Object / Blob Storage *(todo)* | ☐ | ☐ | —             |
-| | Full-Text Search / Inverted Index *(todo)* | ☐ | ☐ | —             |
+| **05 · Databases & Storage** | [Databases — Fundamentals](./05-databases-and-storage/databases-fundamentals.md) | ✅ | ☐ | 2026-08-16             |
+| | [Databases — Scaling](./05-databases-and-storage/databases-scaling.md) | ✅ | ☐ | 2026-08-16             |
+| | [NoSQL Databases](./05-databases-and-storage/nosql-databases.md) | ✅ | ☐ | 2026-08-16             |
+| | [Sharding / Partitioning](./05-databases-and-storage/sharding-and-partitioning.md) | ✅ | ☐ | 2026-08-16             |
+| | [Object / Blob Storage](./05-databases-and-storage/object-blob-storage.md) | ✅ | ☐ | 2026-08-16             |
+| | [Full-Text Search / Inverted Index](./05-databases-and-storage/full-text-search.md) | ☐ | ☐ | —             |
 | | OLTP vs OLAP / Data Warehouse *(todo)* | ☐ | ☐ | —             |
 | | Geospatial Indexing — geohash, quadtree *(todo)* | ☐ | ☐ | —             |
 | | Bloom Filters *(todo)* | ☐ | ☐ | —             |
