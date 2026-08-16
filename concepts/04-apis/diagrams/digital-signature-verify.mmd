@@ -1,0 +1,25 @@
+flowchart LR
+    IN["Received:<br/>Message + Signature"]
+    M["Message"]
+    SIG["Signature"]
+    H["Hash message<br/>(SHA-256)"]
+    DA["Digest A<br/>(just computed)"]
+    DEC["Decrypt signature<br/>with PUBLIC key (RSA)"]
+    DB["Digest B<br/>(from signature)"]
+    CMP{"Digest A<br/>= Digest B?"}
+    OK["Valid — authentic<br/>& untouched"]
+    BAD["Invalid — tampered<br/>or forged"]
+    PUB[("Sender's<br/>PUBLIC key")]
+
+    IN --> M --> H --> DA --> CMP
+    IN --> SIG --> DEC --> DB --> CMP
+    PUB -.->|verifies| DEC
+    CMP -->|match| OK
+    CMP -->|differ| BAD
+
+    class PUB keynode
+    class OK oknode
+    class BAD badnode
+    classDef keynode fill:#fde8c8,stroke:#e0a25e,color:#7a4b12
+    classDef oknode fill:#d7f0d8,stroke:#4c9a51,color:#1e5223
+    classDef badnode fill:#f7d7d7,stroke:#c0504d,color:#7a1f1c

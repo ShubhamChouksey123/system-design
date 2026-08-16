@@ -28,6 +28,8 @@ Hardening an API beyond who-can-call-it. Assumes [authentication & authorization
 
 Cap requests per client/key/IP to stop abuse, brute-force, and accidental overload; protects the backend and enables fair use.
 
+- **Rate limiting** — a **hard cap** on requests in a window (e.g. 100/min per key); once exceeded, extra requests are **rejected** outright with **429**.
+- **Throttling** — **shapes/slows** traffic rather than rejecting it: excess requests are **delayed, queued, or served degraded** to keep the backend within capacity.
 - Return **429 Too Many Requests** with `Retry-After` + limit headers (`X-RateLimit-Remaining`).
 - Algorithms: **token bucket** (bursty), **leaky bucket** (smooth), **fixed/sliding window**.
 - Usually enforced at the **API gateway** (§6).

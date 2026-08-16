@@ -7,10 +7,10 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 ## 📊 Progress Tracking
 
-Track your overall concepts: **9 / 47 completed (19%)** *(read + revised)*
+Track your overall concepts: **13 / 47 completed (28%)** *(read + revised)*
 
-- **Written:** 27 / 47 — **57%** *(20 in backlog — the `*(todo)*` rows)*
-- **Read:** 9 / 47 — **19%**
+- **Written:** 30 / 47 — **64%** *(17 in backlog — the `*(todo)*` rows)*
+- **Read:** 13 / 47 — **28%**
 - **Revised:** 0 / 47 — **0%**
 
 > Tick `☐ → ✅` in the table as you go; run `scripts/progress.sh` to refresh these counts.
@@ -40,14 +40,14 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | | [Real-Time Communication](./04-apis/realtime-communication.md) | ✅ | ☐ | 2026-08-15            |
 | | [Webhooks](./04-apis/webhooks.md) | ✅ | ☐ | 2026-08-15            |
 | | [Authentication & Authorization](./04-apis/authentication-and-authorization.md) | ✅ | ☐ | 2026-08-15             |
-| | [SSO: SAML, OAuth 2.0 & OIDC](./04-apis/oauth-oidc-saml.md) | ☐ | ☐ | —             |
-| | [API Security](./04-apis/api-security.md) | ☐ | ☐ | —             |
-| | Serialization Formats — JSON / Protobuf / Avro *(todo)* | ☐ | ☐ | —             |
-| | Signing Algorithms — symmetric / asymmetric, RSA, SHA *(todo)* | ☐ | ☐ | —             |
+| | [SSO: SAML, OAuth 2.0 & OIDC](./04-apis/oauth-oidc-saml.md) | ✅ | ☐ | 2026-08-15             |
+| | [API Security](./04-apis/api-security.md) | ✅ | ☐ | 2026-08-15             |
+| | [Serialization Formats — JSON / Protobuf / Avro](./04-apis/serialization-formats.md) | ✅ | ☐ | 2026-08-15             |
+| | [Signing Algorithms — symmetric / asymmetric, RSA, SHA](./04-apis/signing-algorithms.md) | ✅ | ☐ | 2026-08-16    |
 | **05 · Databases & Storage** | [Databases — Fundamentals](./05-databases-and-storage/databases-fundamentals.md) | ☐ | ☐ | —             |
 | | [Databases — Scaling](./05-databases-and-storage/databases-scaling.md) | ☐ | ☐ | —             |
 | | [NoSQL Databases](./05-databases-and-storage/nosql-databases.md) | ☐ | ☐ | —             |
-| | Sharding / Partitioning *(todo)* | ☐ | ☐ | —             |
+| | [Sharding / Partitioning](./05-databases-and-storage/sharding-and-partitioning.md) | ☐ | ☐ | —             |
 | | Object / Blob Storage *(todo)* | ☐ | ☐ | —             |
 | | Full-Text Search / Inverted Index *(todo)* | ☐ | ☐ | —             |
 | | OLTP vs OLAP / Data Warehouse *(todo)* | ☐ | ☐ | —             |

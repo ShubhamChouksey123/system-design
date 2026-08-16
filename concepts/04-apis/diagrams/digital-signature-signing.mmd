@@ -1,0 +1,15 @@
+flowchart LR
+    M["Message (data)"]
+    H["Hash<br/>(SHA-256)"]
+    D["Digest<br/>(fingerprint)"]
+    SG["Sign — encrypt digest<br/>with PRIVATE key (RSA)"]
+    SIG["Signature"]
+    OUT["Send:<br/>Message + Signature"]
+    PK[("Sender's<br/>PRIVATE key")]
+
+    M --> H --> D --> SG --> SIG --> OUT
+    M -->|original message sent as-is| OUT
+    PK -.->|signs| SG
+
+    class PK keynode
+    classDef keynode fill:#fde8c8,stroke:#e0a25e,color:#7a4b12
