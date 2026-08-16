@@ -2,11 +2,11 @@
 
 > A step-by-step scaffold for **structuring your answer** to any system design problem. Run it top-to-bottom in the room so nothing important is missed.
 
-**How this relates to the other framework doc:** [`concepts/02-framework`](../concepts/02-framework/system-design-interview-framework.md) is the *behavioral* process — **how** to run the interview (clarify → high-level → deep dive → wrap, collaboration, don'ts). **This** doc is the *content checklist* — **what** to actually cover. Use them together: the 4 phases tell you how to pace the room; the 8 steps below tell you what goes in each phase.
+**How this relates to the other framework doc:** [`concepts/00-framework`](../concepts/00-framework/system-design-interview-framework.md) is the *behavioral* process — **how** to run the interview (clarify → high-level → deep dive → wrap, collaboration, don'ts). **This** doc is the *content checklist* — **what** to actually cover. Use them together: the 4 phases tell you how to pace the room; the 8 steps below tell you what goes in each phase.
 
 ## At a glance — the 8 steps (and where they land in a 45-min interview)
 
-| Phase (from `02-framework`) | Time | Steps to cover here |
+| Phase (from `00-framework`) | Time | Steps to cover here |
 |---|---|---|
 | 1. Understand & scope | ~3–10 min | ① Functional requirements · ② Non-functional requirements |
 | 2. High-level design & buy-in | ~10–15 min | ③ Envelope estimation · ④ Sketch the architecture |

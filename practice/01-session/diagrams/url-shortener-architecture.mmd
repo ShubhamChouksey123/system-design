@@ -1,0 +1,26 @@
+flowchart LR
+    C([Client])
+    GW[API Gateway]
+    SVC["URL Shortener Service
+    (N instances)"]
+    CACHE[("Redis cache
+    cache-aside")]
+    WDB[("Write DB
+    primary")]
+    RDB[("Read replica")]
+    Q[["Async queue
+    (click events)"]]
+    AN["Analytics
+    consumer"]
+    ADB[("Analytics
+    store")]
+
+    C -->|"POST /urls {longUrl}"| GW
+    C -->|"GET /{shortUrl}"| GW
+    GW --> SVC
+    SVC -->|"1. check cache"| CACHE
+    SVC -->|"write"| WDB
+    SVC -->|"2. cache miss → read"| RDB
+    WDB -.->|"async replication (lag)"| RDB
+    SVC -.->|"emit click event"| Q
+    Q --> AN --> ADB

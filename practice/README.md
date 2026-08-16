@@ -1,8 +1,8 @@
-# Mock Interview Practice — System Design
+# Senior System Design Mock Interviews — Scored & Analyzed
 
-> Log of system design mock interviews — the problem, the design produced, the scorecard, and consolidated tips distilled from feedback across sessions.
+> Real system-design **mock interviews** for **senior software engineer** prep — each with the problem, the design produced (with diagrams), the interviewer's **/10 scorecard**, and a gap-by-gap breakdown of **exactly what lost points and how to fix it.**
 
-Each `NN-session/` folder holds a `script.md` with the full transcript, the interviewer's scorecard, and per-session tips. This index rolls them up so progress and recurring weak spots are visible at a glance.
+Every `NN-session/` folder is a **standalone analyzed write-up** ([`README.md`](./01-session/README.md)) backed by the **raw transcript** (`script.md`). This page rolls them up so recurring weak spots turn into a study plan.
 
 📣 **Rehearsal tools:** work through the [Answer Framework playbook](./answer-framework.md) — the 8 steps to cover in every answer — and run the [framework's in-the-room checklist](../concepts/00-framework/system-design-interview-framework.md#4-in-the-room-checklist-quick-reference) as a dry-run before each mock. Structured delivery is the consistent weak spot (see [How to Improve](#how-to-improve)).
 
@@ -14,36 +14,19 @@ Scores are **/10** across the mock platform's five axes. Verdict: ✅ Pass (≥ 
 
 | # | Problem | Type | Verdict | Req. | Design | Prob-Solving | Scale & Trade-offs | Comm. | Overall |
 |---|---------|------|---------|:----:|:------:|:------------:|:------------------:|:-----:|:-------:|
-| [01](01-session/script.md) | URL shortener (bit.ly / TinyURL) | Read-heavy KV store + analytics | ⚠️ Borderline | 6.0 | 6.0 | 6.5 | 5.5 | 5.5 | **5.9** |
+| [01](./01-session/README.md) | URL shortener (bit.ly / TinyURL) | Read-heavy KV store + analytics | ⚠️ Borderline | 6.0 | 6.0 | 6.5 | 5.5 | 5.5 | **5.9** |
 
 **Related concepts**: [Back-of-the-Envelope Estimation](../concepts/01-envelope-estimation/back-of-the-envelope-estimation.md) (01) · [Interview Framework](../concepts/00-framework/system-design-interview-framework.md) (01) · [Load Balancing & Consistent Hashing](../concepts/03-networking-and-delivery/load-balancing-and-consistent-hashing.md) (01)
 
 ---
 
-## Session Summaries
+## Session write-ups
 
-### 01 — URL Shortener ⚠️ Borderline (5.9/10)
+Each session has a full **analyzed page** — problem, design + diagram, scorecard, and gap-by-gap fixes.
 
-**Problem**: Design a URL shortening service like bit.ly / TinyURL — billions of URLs, click analytics, high availability, low-latency redirects.
+### [01 — URL Shortener (bit.ly / TinyURL)](./01-session/README.md) · ⚠️ 5.9/10
 
-**Design produced**: API Gateway → multiple URL-shortener service instances → write DB with a read replica (async replication) → cache-aside (Redis) on the read path. DB-generated ID as the short key; data model `{id, original_url, short_url, created_at, expires_at}`; async queue to capture click events for analytics off the redirect path; leader-election failover for the write DB; consistent hashing to route cache keys (reached only after heavy prompting).
-
-**Estimation**: ~1B URLs/year → **~3 writes/sec**; assumed **100:1** read:write → **~300 reads/sec**.
-
-**What went well**:
-- Systematically identified the core functional operations (create short URL, resolve to long URL).
-- Clean back-of-the-envelope throughput math for both reads and writes.
-- Solid grasp of read replicas, the cache-aside pattern, and DB leader-election failover.
-- Chose async processing for analytics to protect redirect latency.
-- Reasoned about replication-lag trade-off and its (acceptable) UX impact.
-
-**What hurt the score**:
-- **Key generation stayed shallow** — proposed hashing, hand-waved collisions ("keep the rate low"), and did **not** recognize the security/predictability risk of sequential DB IDs. Never reached base62 / key-pool / counter approaches.
-- **Wrong HTTP semantics for redirects** — answered 202 / 200 / 404 instead of **3xx** (301 permanent vs 302 temporary) and their caching/analytics implications.
-- **Consistent hashing needed heavy prompting** — went vertical-scaling-first for the cache and only reached hash-based node routing after multiple hints.
-- **Diagram lacked labels** — no data/protocol on arrows, no API signatures on the canvas.
-- **Analytics requirements** were explored late and thinly given the problem called them out explicitly.
-- **Verbal delivery** was repetitive and sometimes unclear.
+Read-heavy KV store + click analytics. **Strong:** throughput estimation, cache-aside, DB failover, async analytics. **Lost points on:** key-generation depth (base62 / predictable-ID security), HTTP **3xx** redirect semantics, and reaching for **consistent hashing** without prompting. → **[Read the full write-up →](./01-session/README.md)**
 
 ---
 

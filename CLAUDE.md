@@ -24,7 +24,7 @@ concepts/            the study resources
 practice/            mock-interview log & prep playbook
   README.md          progress tracker (scored session table + recurring themes)
   answer-framework.md the 8-step answer playbook to run in the room
-  NN-session/        one folder per mock (script.md = transcript + scorecard + tips)
+  NN-session/        one folder per mock (README.md = analyzed write-up + diagram; script.md = raw transcript)
 docs/                book PDF (gitignored) + TODO.md (backlog)
 .claude/skills/excalidraw-diagram/   diagram-rendering skill (render via uv; GUIDELINES §8)
 tmp.md               user's scratchpad / prompt buffer (gitignored — not a deliverable)
@@ -59,7 +59,7 @@ Numbered folders (`00-`…`08-`) are **ordered topic sections** — each holds *
 - `practice/answer-framework.md` — the **content** playbook: *what* to cover in an answer (8 steps: functional/non-functional reqs → estimation → architecture → walkthrough → data model → trade-offs → testing/monitoring). Maps its 8 steps onto the other doc's 4 phases.
 
 ## Practice tracker conventions (`practice/`)
-- Each mock is `NN-session/` containing `script.md` (bundles transcript + the platform scorecard + tips).
+- Each mock is `NN-session/` containing a **`README.md`** — the polished, standalone **analyzed write-up** (problem → requirements → estimation → design **+ diagram** → scorecard → gap-by-gap "what lost points & the fix" table → takeaways) — backed by **`script.md`**, the raw transcript. The README is the reader-facing page (public-repo asset); `script.md` is the authentic log it links to. Diagrams go in `NN-session/diagrams/` (Mermaid `.mmd` + same-named `.png`, per GUIDELINES §8).
 - `practice/README.md` is the progress tracker: a **session table scored /10 across five axes** (Requirements, Design, Problem-Solving, Scale & Trade-offs, Communication + Overall) with verdict thresholds (✅ ≥7 · ⚠️ 5.5–6.9 · ❌ <5.5), followed by **Consolidated Tips grouped by axis (weakest first)** with `[S01]`-style session tags, **Recurring Action Items**, and a **How to Improve** diagnosis. When logging a new session, add the row and promote any repeated feedback into the recurring sections — that aggregation is the point.
 
 ## Editorial stance
