@@ -1,0 +1,17 @@
+flowchart LR
+    Closed["CLOSED<br/>calls pass through<br/>failures counted"]
+    Open["OPEN<br/>fail instantly<br/>return fallback"]
+    HalfOpen["HALF-OPEN<br/>allow a few<br/>trial calls"]
+
+    Closed -->|"failure rate<br/>exceeds threshold"| Open
+    Open -->|"cooldown<br/>timer expires"| HalfOpen
+    HalfOpen -->|"trial calls<br/>succeed"| Closed
+    HalfOpen -->|"any trial<br/>call fails"| Open
+
+    classDef closed fill:#d5f5e3,stroke:#1e8449,stroke-width:2px,color:#145a32;
+    classDef open fill:#fadbd8,stroke:#c0392b,stroke-width:2px,color:#7b241c;
+    classDef half fill:#fdebd0,stroke:#ca6f1e,stroke-width:2px,color:#7e5109;
+
+    class Closed closed;
+    class Open open;
+    class HalfOpen half;

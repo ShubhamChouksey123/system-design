@@ -128,6 +128,10 @@ nav:
           - Event-Driven Architecture: concepts/07-messaging-and-events/event-driven-architecture.md
       - "08 · Distributed Systems":
           - Single Point of Failure: concepts/08-distributed-systems/single-point-of-failure.md
+          - Consistency Models — Strong, Eventual, Quorum: concepts/08-distributed-systems/consistency-models.md
+      - "09 · Reliability & Operations":
+          - Resilience Patterns — Timeouts, Retries, Circuit Breakers: concepts/09-reliability-and-operations/resilience-patterns.md
+          - Observability — Logs, Metrics, Tracing & SLOs: concepts/09-reliability-and-operations/observability.md
   - Mock Interviews:
       - Overview & scorecards: practice/README.md
       - Answer Framework (Playbook): practice/answer-framework.md

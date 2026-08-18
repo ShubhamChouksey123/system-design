@@ -6,16 +6,16 @@ Two very different jobs a "database" does: **running the app** (many tiny reads/
 
 ## 1. The two workloads
 
-| | **OLTP** (Online Transaction Processing) | **OLAP** (Online Analytical Processing) |
-|---|---|---|
-| Purpose | run the application | analyze / report on data |
-| Query shape | many **small** reads/writes by key | few **huge aggregations** over columns |
-| Example | "insert this order", "get user 42" | "total revenue per region per month" |
-| Rows touched | one or a few | millions–billions |
+| | **OLTP** (Online Transaction Processing) | **OLAP** (Online Analytical Processing)       |
+|---|---|-----------------------------------------------|
+| Purpose | run the application | analyze / report on data                      |
+| Query shape | many **small** reads/writes by key | few **huge aggregations** over columns        |
+| Example | "insert this order", "get user 42" | "total revenue per region per month"          |
+| Rows touched | one or a few | millions–billions                             |
 | Writes | constant, real-time | bulk **loads** (batch/stream), rarely updated |
-| Data | current, normalized | historical, denormalized |
-| Latency target | milliseconds | seconds–minutes is fine |
-| Example tech | PostgreSQL, MySQL, DynamoDB | Snowflake, BigQuery, Redshift |
+| Data | current, normalized | historical, denormalized                      |
+| Latency target | milliseconds | seconds–minutes is fine                       |
+| Example tech | PostgreSQL, MySQL, DynamoDB | Snowflake, BigQuery, AWS Redshift             |
 
 **One line:** OLTP = **write-heavy, key-based, current** state; OLAP = **read-heavy, scan-based, historical** analytics.
 
@@ -37,8 +37,18 @@ The warehouse is a **derived copy**; a pipeline moves data in:
 
 - **ETL** — **Extract** from sources, **Transform** (clean/join/aggregate), **Load** into the warehouse. Classic, transform before load.
 - **ELT** — Load raw first, **Transform inside** the warehouse (modern, leverages cheap warehouse compute; e.g. dbt).
-- Runs as a **batch** (nightly) or **streaming** (near-real-time via [CDC](./sharding-and-partitioning.md) / Kafka), so the warehouse is **eventually consistent** with OLTP.
+- Runs as a **batch** (nightly) or **streaming** (near-real-time via **CDC** — *change data capture*, streaming a DB's row changes — or [Kafka](../07-messaging-and-events/apache-kafka.md)), so the warehouse is **eventually consistent** with OLTP.
 - A **data lake** (raw files on object storage) often sits *before* the warehouse; **lakehouse** (Databricks, Iceberg) merges the two.
+
+**Example tools by job:**
+
+| Job in the pipeline | Tools |
+|---|---|
+| **CDC** — stream row-level changes from the DB | **Debezium**, AWS DMS, Maxwell |
+| **Ingestion / ETL** | Fivetran, Airbyte, Stitch (modern EL); **Microsoft SSIS**, Informatica, Talend (classic ETL suites) |
+| **Transform** (the "T") | **dbt**, Apache Spark |
+| **Orchestration / scheduling** | Apache Airflow, Dagster, Prefect |
+| **Streaming transport** | Apache Kafka (+ Kafka Connect), Apache Flink |
 
 ## 5. Real-world technologies
 
@@ -47,7 +57,6 @@ The warehouse is a **derived copy**; a pipeline moves data in:
 | **OLTP databases** | PostgreSQL, MySQL, Oracle, SQL Server; DynamoDB, MongoDB |
 | **OLAP / warehouses** | **Snowflake**, Google **BigQuery**, Amazon **Redshift**, ClickHouse, **Apache Druid** |
 | **Data lake / lakehouse** | S3 + Athena, Databricks, Apache Iceberg / Delta Lake |
-| **ETL / ELT tools** | dbt, Airflow, Fivetran, Spark |
 
 ## 6. When to use what
 

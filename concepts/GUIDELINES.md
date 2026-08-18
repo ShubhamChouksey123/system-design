@@ -53,6 +53,7 @@ Concepts are **numbered so readers go in order.** Do **not** add `Reference`, `G
 - Audience: a senior engineer prepping for interviews.
 - **Every number must tie to an architectural consequence** (shard vs single DB, CDN vs origin, blob store vs filesystem). A figure with no decision attached is incomplete.
 - **Name real-world examples / technologies.** Every concept should point to concrete systems that implement it — e.g. message queue → *Apache Kafka, RabbitMQ, AWS SQS/SNS*; load balancer → *NGINX, HAProxy, AWS ELB/ALB*. A short table (`Technology | Type | Notes`) is ideal. It grounds the abstraction in tools interviewers expect you to name.
+- **Prefix AWS products with `AWS`.** Always write the vendor in front of an AWS service — `AWS DynamoDB`, `AWS S3`, `AWS ElastiCache`, `AWS Redshift` — never the bare product name. This disambiguates managed AWS offerings from the open-source engines they're based on (e.g. `AWS Keyspaces` vs `Cassandra`, `AWS ElastiCache` vs `Redis`) and keeps naming consistent across docs.
 - **Cross-link** related concepts with relative paths.
 - Source is *System Design Interview* by Alex Xu — write from the relevant chapter (no in-file citation needed); the PDF is not readable in-repo, so flag figures the user may want to verify.
 
@@ -95,6 +96,7 @@ Add a diagram when a picture argues the concept better than prose (flows, fan-ou
 □ Blank line before & after every table, list, and code block (§7)
 □ Every number ties to a decision
 □ Names real-world examples / technologies (e.g. Kafka, SQS, NGINX)
+□ AWS products prefixed with "AWS" (e.g. AWS DynamoDB, AWS S3 — not the bare name)
 □ Diagram (if any): argues the concept, plain alt text, source (.mmd/.excalidraw) + same-named PNG committed (§8)
 □ Added a row to concepts/README.md
 □ Relative cross-links resolve

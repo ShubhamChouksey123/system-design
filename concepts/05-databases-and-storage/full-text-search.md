@@ -98,7 +98,7 @@ Beyond the basic index, engines add layers to make lookups faster and fit more o
 
 ## 7. System-design considerations
 
-- **Secondary store, not the source of truth.** Your primary DB owns the data; the search index is a **derived copy** kept in sync via **[CDC](../08-distributed-systems/single-point-of-failure.md)** / a queue → so it's **eventually consistent** (a new record is searchable seconds later, not instantly).
+- **Secondary store, not the source of truth.** Your primary DB owns the data; the search index is a **derived copy** kept in sync via **CDC** (*change data capture*) or a [message queue](../07-messaging-and-events/message-queue.md) → so it's **eventually consistent** (a new record is searchable seconds later, not instantly).
 - **Sharded + replicated** — the index is split into [shards](./sharding-and-partitioning.md) across nodes (scatter-gather a query, merge results) and replicated for availability — exactly like a distributed DB.
 - **Near-real-time** — indexing isn't instant; engines "refresh" on an interval (e.g. ~1 s in Elasticsearch).
 - **Write cost** — indexing is heavier than a plain insert (analysis + index update), so it trades write throughput for fast, rich reads.

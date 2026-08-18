@@ -18,7 +18,7 @@ A **load balancer (LB)** sits between clients and a pool of servers and distribu
 | **L7 (application)** | HTTP/HTTPS | URL, headers, cookies | Content routing, TLS termination |
 | **DNS** | DNS resolution | Different IPs | Coarse geo/round-robin; no health awareness |
 
-Software LBs (NGINX, HAProxy, cloud ELB/ALB) are the norm today.
+Software LBs (NGINX, HAProxy, cloud ELB/ALB, AWS ELB(Elastic Load Balancer)) are the norm today.
 
 **Algorithms:**
 
