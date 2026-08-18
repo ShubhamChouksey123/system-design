@@ -6,8 +6,10 @@ Work across three tracks: **Growth & Distribution** (get the live site found), *
 
 The site is live at <https://shubhamchouksey123.github.io/system-design/>. These move the needle on **reach** far more than another concept doc — roughly in priority order.
 
+> **▶ Right now:** (1) resubmit the sitemap as `sitemap.xml` (no leading slash); (2) add the site link to your **GitHub profile README + LinkedIn** and cross-link the **DSA repo** — cheap backlinks that start earning authority; (3) on the content side, fill the **Distributed Systems** gap (consistency → consensus → transactions).
+
 ## 1. Get indexed (do first — nothing ranks until this is done)
-- [ ] **Google Search Console** — add the property, verify ownership, **submit `sitemap.xml`**.
+- [~] **Google Search Console** — property added + **ownership verified** (HTML-file, `site-docs/google…​.html`). Sitemap first submit showed *"Couldn't fetch"* (leading-slash `/sitemap.xml` 404s at the domain root). **Remaining: resubmit as `sitemap.xml`** — no leading slash → resolves to `…/system-design/sitemap.xml` (confirmed 200).
 - [x] **Set the repo `homepage` field** to the live site URL (About panel + a backlink signal).
 - [ ] **Bing Webmaster Tools** — import from Search Console (covers Bing / DuckDuckGo + IndexNow).
 
