@@ -92,10 +92,12 @@ nav:
           - Worked Examples — QPS, Storage & Bandwidth: concepts/01-envelope-estimation/back-of-the-envelope-examples.md
       - "02 · Foundations":
           - Basics — Cloud, API, Scalability: concepts/02-foundations/basics.md
+          - Non-Functional Requirements — the -ilities: concepts/02-foundations/non-functional-requirements.md
           - Monolithic vs Microservices: concepts/02-foundations/monolithic-vs-microservices.md
       - "03 · Networking & Delivery":
           - Load Balancing & Consistent Hashing: concepts/03-networking-and-delivery/load-balancing-and-consistent-hashing.md
           - Content Delivery Network (CDN): concepts/03-networking-and-delivery/cdn.md
+          - API Gateway & Reverse Proxy: concepts/03-networking-and-delivery/api-gateway-and-reverse-proxy.md
       - "04 · APIs":
           - API Design: concepts/04-apis/api-design.md
           - HTTP — Methods, Status, Headers: concepts/04-apis/http.md
