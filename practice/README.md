@@ -44,49 +44,52 @@ Listings + cart + payments for small businesses; delivery-first, scale depriorit
 
 Grouped by the axis interviewers score, weakest axis first. Session tags like `[S01]` mark the source; a repeat across sessions is a priority to drill. Per-axis score history is shown so trends are visible.
 
-### Communication — `5.5 → 6.0` (top priority · low in both)
+### Communication — `5.5 → 6.0 → 6.0` (top priority · lowest across all three, now flat)
 - **Structure every answer**: *decision → why → trade-off.* Cut repetition — say each point once. `[S01]` `[S02]`
 - **Front-load requirements as a visible checklist** on the canvas, split into functional / non-functional / analytics, before designing. `[S01]`
-- **Keep the diagram live** — update the canvas the moment a component enters the conversation. The webhook, SSE, cache, and CDN were *discussed but never drawn*, and the stale diagram was explicitly called out. `[S02]`
+- **The diagram is the artifact the interviewer reads — keep it live *and* legible.** S02 lost points for a *stale* diagram (webhook/SSE/cache/CDN discussed but never drawn); S03 kept it live but lost the same point for a *cluttered* one (overlapping arrows). Next target: separate **read vs write flows**, color per journey, space components. `[S02]` `[S03]`
 - **Label diagrams**: every arrow gets its data + protocol (HTTP/gRPC/async); put API signatures on the canvas, e.g. `POST /urls {longUrl} → {shortUrl}`. `[S01]`
 - Be concise and direct; a short pause beats filler while you think. `[S01]` `[S02]`
 
-### Scalability & Trade-offs — `5.5 → 6.0` (low in both)
+### Scalability & Trade-offs — `5.5 → 6.0 → 6.0` (still low · plateaued)
 - **Reach for the standard scaling tool directly** — for a distributed cache/DB that's **consistent hashing**; don't detour through vertical scaling first. `[S01]`
 - **Analyze bottlenecks at 10×/100×**, not just current load — name where each layer breaks and the fix. `[S01]`
-- **Push past replicas** to caching, **load balancing**, and **sharding** — read replicas alone don't fully answer a read-heavy scaling question. `[S02]`
+- **Don't stop at bottleneck #1.** S03 added replicas + cache but stalled there — name the *next* bottlenecks: **horizontal backend scaling** behind the LB, **DB sharding**, **rate limiting** at the gateway, connection pooling. `[S02]` `[S03]`
 - When you state a trade-off (e.g. replication lag), also state **when it's unacceptable** and the mitigation (read-your-writes, route critical reads to primary). `[S01]` `[S02]`
+- **Cache-consistency reasoning landed** — write-DB-first-then-cache + backoff retry for eventual consistency was a solid, defended choice. Keep pairing the strategy with its staleness window. `[S03]` → [caching](../concepts/06-caching/caching.md)
 
-### Requirements Gathering — `6.0 → 7.0` (improving)
+### Requirements Gathering — `6.0 → 7.0 → 7.0` (gain held)
 - **Explore every stated requirement upfront**, especially ones the prompt names explicitly (analytics here) — don't leave them to the end. `[S01]`
-- **Make the constraint an explicit trade-off** — "delivery over scale, so monolith-first" was a strong, defensible move; keep verbalizing the *why*. `[S02]`
-- Nail scale numbers early (read:write ratio, QPS, storage/retention) — strong in S01; **S02 skipped them** and lost the pre-justification for caching/replicas, so keep doing it every time. `[S01]` `[S02]`
-- **Surface user roles / auth in scoping** — "who are the actors and what can each do?" (buyer vs seller) is a requirements question, not just a security one. `[S02]`
+- **Make the constraint an explicit trade-off** — "delivery over scale, so monolith-first" was a strong, defensible move; keep verbalizing the *why*. `[S02]` `[S03]`
+- **Nail scale numbers early** (read:write ratio, QPS, storage/retention). S02 skipped them and lost the pre-justification for caching/replicas; **S03 stated them up front (5k users, 100:1, ~1000 RPS)** and it pre-justified the whole read-path design. Keep doing it every time. `[S01]` `[S02]` `[S03]`
+- **Surface user roles / auth in scoping** — "who are the actors and what can each do?" (buyer vs seller) is a requirements question, not just a security one. `[S02]` `[S03]`
 
-### Design Skills — `6.0 → 7.0` (improving)
-- **Always draw the data model** — schema + keys + any state machine (e.g. payment `pending → success/failed`). Missing in *both* sessions; it's the fastest Design points to earn. `[S01]` `[S02]`
-- **Cover the silent senior axes unprompted** — **security/auth**, **caching**, **CDN**. They're not in the prompt, but their *absence* failed S02. `[S02]` → [AuthN & AuthZ](../concepts/04-apis/authentication-and-authorization.md) · [caching](../concepts/06-caching/caching.md) · [CDN](../concepts/03-networking-and-delivery/cdn.md)
+### Design Skills — `6.0 → 7.0 → 7.0` (gain held · the S02 blind spots closed)
+- **Always draw the data model** — schema + keys + any state machine. Missing in S01 **and** S02; **S03 finally drew it** (Products / Users / Carts / Payments with a `pending → cancelled/success` status). Keep it a non-negotiable — and go one further: **model Orders / order_items separately from Payments** (payment ≠ order — S03's schema still lacked it). `[S01]` `[S02]` `[S03]` → [databases](../concepts/05-databases-and-storage/databases-fundamentals.md)
+- **Cover the silent senior axes unprompted** — **security/auth**, **caching**, **CDN**. Their *absence* failed S02; **S03 surfaced all three unprompted** (auth module, Redis, CDN) and that flipped the verdict. The **last silent box** still open: **payment-data / PCI** — tokenize via the provider, never store raw card data. `[S02]` `[S03]` → [AuthN & AuthZ](../concepts/04-apis/authentication-and-authorization.md) · [caching](../concepts/06-caching/caching.md) · [CDN](../concepts/03-networking-and-delivery/cdn.md) · [API Security](../concepts/04-apis/api-security.md)
 - **Go deep on key generation** — compare hashing (collision handling), base62 of a counter, pre-generated key pools, and the **security implication of predictable IDs**. `[S01]`
-- Know **cache eviction/invalidation**: LRU/LFU, TTL, and how expired/updated entries leave the cache. `[S01]` `[S02]` → [caching](../concepts/06-caching/caching.md)
-- **Justify a service split** by independent scaling / blast-radius / different access patterns — or defend staying monolith. Don't assert the split. `[S02]` → [monolith vs microservices](../concepts/02-foundations/monolithic-vs-microservices.md)
+- Know **cache eviction/invalidation**: LRU/LFU, TTL, and how expired/updated entries leave the cache. `[S01]` `[S02]` `[S03]` → [caching](../concepts/06-caching/caching.md)
+- **Justify a service split** by independent scaling / blast-radius / different access patterns — or defend staying monolith. S03 *defended* the monolith when probed rather than asserting it — the right move. `[S02]` `[S03]` → [monolith vs microservices](../concepts/02-foundations/monolithic-vs-microservices.md)
 
-### Problem Solving — `6.5 → 7.0` (strongest)
-- Keep leading with estimation, async-decoupling, and **failure-recovery** instincts — the pending-status + async reconciliation in S02 landed well. `[S01]` `[S02]`
-- **Hunt the concurrency edge case** — "what if two buyers grab the last unit?" should be reflexive on any inventory/stock design (atomic conditional update / row lock / optimistic version). `[S02]` → [consistency models](../concepts/08-distributed-systems/consistency-models.md)
+### Problem Solving — `6.5 → 7.0 → 6.0` (⚠️ regressed — the repeat concurrency miss)
+- **Hunt the concurrency edge case — this is now the #1 recurring miss.** "What if two buyers grab the last unit?" was missed in *both* S02 and S03; it's what pulled Problem-Solving down a full point in S03. Make guarding the decrement (**atomic conditional update / row lock / optimistic version**, or reserve-stock-with-timeout) a reflex on any inventory/stock design. `[S02]` `[S03]` → [consistency models](../concepts/08-distributed-systems/consistency-models.md)
+- Keep leading with estimation, async-decoupling, and **failure-recovery** instincts — the pending-status + async reconciliation in S02 landed well. *(S03 note: the webhook-never-arrives fallback was stronger in S02 — don't let it slip on re-solves.)* `[S01]` `[S02]`
 - **Offer 2–3 options before committing** and name their trade-offs, rather than settling on the first idea. `[S01]`
 
 ---
 
 ## Recurring Action Items
 
-1. **Open with a 5-minute requirements checklist** on the canvas (functional / non-functional / analytics / **actors & auth**) — [framework](../concepts/00-framework/system-design-interview-framework.md) Step 1.
-2. **Always draw the data model** — schema, keys, and any state machine. Missing in *both* sessions; make it a non-negotiable step.
-3. **Cover the silent senior axes unprompted** every time: **security / auth, caching, CDN** for read-heavy paths — their *absence* is what sinks the score, not the prompt asking for them.
-4. **Keep the diagram a live artifact** — draw each component (webhook, SSE, cache, CDN) the moment you say it; a stale diagram was called out in S02.
-5. **Study the recurring fundamentals** that cut across problems: **consistent hashing, base62 encoding, HTTP 3xx redirects, cache eviction (LRU/LFU/TTL), sharding/partitioning, load balancing.**
-6. **Hunt the concurrency edge case** — e.g. concurrent purchase of the last-in-stock unit (atomic conditional update / row lock / optimistic version).
-7. **Label diagrams** — data + protocol on arrows, API signatures on the canvas.
-8. For every decision, verbalize **"Option A trades X; Option B trades Y; I'd pick ___ because ___."** — including *why* you split (or didn't split) services.
+*Ordered by how stubborn the miss is. #1 is the standout: missed in two mocks of the same problem even after drilling.*
+
+1. **Hunt the concurrency edge case — the #1 recurring miss.** Concurrent purchase of the last-in-stock unit was missed in **both S02 and S03**; it cost a full Problem-Solving point on the re-solve. Guard the decrement (**atomic conditional update / row lock / optimistic version**, or reserve-stock-with-timeout) — make it reflexive on any inventory/stock design. → [consistency models](../concepts/08-distributed-systems/consistency-models.md)
+2. **Open with a 5-minute requirements checklist** on the canvas (functional / non-functional / analytics / **actors & auth**) → **one estimate** (read:write, RPS) → **data-model sketch**, *before* components. **This closed the S02 blind spots in S03** — keep it muscle-memory. → [framework](../concepts/00-framework/system-design-interview-framework.md) Step 1 · [Opening Ritual](./opening-ritual.md).
+3. **Model Orders separately from Payments** — add `orders` + `order_items` (line items, qty, price-at-purchase, fulfillment). S03 drew Payments but nothing recording *what was bought*. Payment ≠ order.
+4. **Close the last silent senior box: payment-data / PCI.** S03 surfaced auth/caching/CDN unprompted but left payment security blank — **tokenize via the provider, never store raw card data**, and name PCI-scope reduction as *why* you use an external gateway.
+5. **Keep the diagram live *and* legible.** The problem moved from *stale* (S02) to *cluttered* (S03) — next target is a clean canvas with **read vs write flows separated**, colored per journey, components spaced. Still: draw each component the moment you say it.
+6. **Don't stop at bottleneck #1.** After read replicas + cache, name the next ones: **horizontal backend scale** behind the LB, **DB sharding**, **rate limiting** at the gateway, connection pooling.
+7. **Study the recurring fundamentals** that cut across problems: **consistent hashing, base62 encoding, HTTP 3xx redirects, cache eviction (LRU/LFU/TTL), sharding/partitioning, load balancing.**
+8. **Label diagrams** — data + protocol on arrows, API signatures on the canvas — and for every decision verbalize **"Option A trades X; Option B trades Y; I'd pick ___ because ___,"** including *why* you split (or didn't split) services.
 
 ---
 
@@ -94,17 +97,20 @@ Grouped by the axis interviewers score, weakest axis first. Session tags like `[
 
 ### The diagnosis
 
-Two sessions in, the same two axes sit at the bottom of **both** scorecards: **Communication** (5.5 → 6.0) and **Scale & Trade-offs** (5.5 → 6.0). Problem-solving (6.5 → 7.0) is consistently the strongest, so the raw reasoning is there — the points are lost *around* it. The gaps sort into three kinds:
+**S03 was the experiment: re-solve S02's exact problem after drilling the gaps — and it worked.** The blind spots that drove S02's **FAIL** (no schema, no caching, no CDN, no auth) all appeared *unprompted*, and the verdict flipped to **Lean Hire**. That confirms the earlier read: the reasoning engine is fine; **the fix was a habit, not knowledge.** The opening checklist is now the proven lever.
 
-1. **Recurring blind spots** (highest leverage) — three things go missing whether or not the prompt asks for them: the **data model / schema** (absent in both), **security / auth**, and **caching / CDN** for read-heavy paths. In S02 their absence alone drove the interviewer's **FAIL**. These aren't knowledge gaps so much as *habit* gaps — they need to become reflexive opening moves, not things remembered at the end.
-2. **Knowledge gaps** (fixable by study) — specific fundamentals that recur across problems: consistent hashing, base62 key generation, HTTP 3xx redirects, cache eviction, and **load balancing / sharding depth**. Grinding these *will* move the Scale axis.
-3. **Delivery gaps** (fixable by rehearsal) — unstructured, repetitive walkthroughs and a **stale diagram** (S02) that lagged the discussion. The reasoning was sound; it wasn't captured on the canvas or narrated concisely.
+What the re-solve *didn't* fix tells us where the remaining work is:
+
+1. **The concurrency reflex is the highest-leverage gap now.** The concurrent-last-unit race was missed *twice* on the same problem — the one thing drilling the checklist didn't catch, because it's not a checklist item, it's an instinct to interrogate the write path. It cost a full Problem-Solving point in S03. This is now the single biggest scoring lever.
+2. **Two silent boxes remain** — **payment-data / PCI** (tokenize, never store cards) and a **proper Orders model** (S03 has Payments but nothing recording *what* was bought). The checklist surfaced the *read-path* senior axes; it now needs the *write/checkout-path* ones added.
+3. **Delivery plateaued** — **Communication and Scale both flat at 6.0.** The diagram problem shifted from *stale* (S02) to *cluttered* (S03) — the artifact is now live but not legible. Scale stops at bottleneck #1 (replicas + cache) without naming sharding / horizontal scale / rate limiting.
 
 ### The plan
 
-- **Make a fixed opening checklist muscle-memory**: requirements (functional / non-functional / **actors & auth**) → one estimate (read:write) → **data-model sketch** → then components. This single habit attacks the recurring blind spots and both weak axes at once.
-- **Build the concept library for the recurring gaps** — consistent hashing, base62 key generation, load balancing & sharding depth. Pull from the Alex Xu book chapters.
-- **Rehearse the framework's 4-step flow out loud** using the [in-the-room checklist](../concepts/00-framework/system-design-interview-framework.md#4-in-the-room-checklist-quick-reference), forcing the requirements checklist, a live diagram, and a labeled data model every time.
-- **Re-attempt a scored problem** after drilling the gaps and compare — the same-problem re-solve is the clearest signal of progress.
+- **Add the write-path items to the opening checklist** — the read-path version is now automatic (caching/CDN/auth landed). Extend it: after the data model, ask **"where's the concurrent write, and how do I guard it?"** and **"is there sensitive data (payments/PII) — how is it secured?"**
+- **Drill the concurrency edge case specifically** — on every stock/inventory/booking/counter problem, force the "two clients race for the last one" question and answer it (atomic update / row lock / optimistic version / reservation). It's a reflex, not a fact.
+- **Fix diagram legibility** — separate read vs write flows, color per journey, space components. Live *and* legible.
+- **Push scaling past the first bottleneck** — after replicas + cache, always name horizontal scale, sharding, and rate limiting; pull sharding/consistent-hashing depth from the Alex Xu chapters.
+- **Keep re-solving** — the same-problem re-attempt is the clearest progress signal; the next one should target a *clean diagram + guarded concurrency* on this same prompt before moving on.
 
-> **Implication**: the reasoning engine is fine — what's missing is a *repeatable checklist* that surfaces data model, security, and caching every time, plus keeping the diagram live. Split practice ~50% habit-drilling that checklist, ~30% studying the recurring fundamentals, ~20% concise structured narration.
+> **Implication**: the checklist habit is validated — it converts a FAIL to a Hire on the read-path axes. The next tier of points is **the concurrency reflex + the write/checkout-path senior boxes (PCI, Orders) + a legible diagram.** Split practice ~40% drilling the concurrency/write-path reflex, ~30% deeper scaling fundamentals, ~30% clean structured delivery.
