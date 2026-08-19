@@ -16,8 +16,9 @@ Scores are **/10** across the mock platform's five axes. Verdict: ✅ Pass (≥ 
 |---|---------|------|---------|:----:|:------:|:------------:|:------------------:|:-----:|:-------:|
 | [01](./01-session/README.md) | URL shortener (bit.ly / TinyURL) | Read-heavy KV store + analytics | ⚠️ Borderline | 6.0 | 6.0 | 6.5 | 5.5 | 5.5 | **5.9** |
 | [02](./02-session/README.md) | Basic e-commerce platform | Listings + cart + payments; delivery-first | ⚠️ Borderline | 7.0 | 7.0 | 7.0 | 6.0 | 6.0 | **6.6** |
+| [03](./03-session/README.md) | Basic e-commerce platform *(re-solve of 02)* | Same prompt, after drilling S02 gaps | ⚠️ Borderline *(Lean Hire)* | 7.0 | 7.0 | 6.0 | 6.0 | 6.0 | **6.5** |
 
-**Related concepts**: [Estimation](../concepts/01-envelope-estimation/back-of-the-envelope-estimation.md) (01) · [Interview Framework](../concepts/00-framework/system-design-interview-framework.md) (01) · [Load Balancing & Consistent Hashing](../concepts/03-networking-and-delivery/load-balancing-and-consistent-hashing.md) (01) · [AuthN & AuthZ](../concepts/04-apis/authentication-and-authorization.md) (02) · [Caching](../concepts/06-caching/caching.md) (02) · [Consistency Models](../concepts/08-distributed-systems/consistency-models.md) (02) · [Monolith vs Microservices](../concepts/02-foundations/monolithic-vs-microservices.md) (02)
+**Related concepts**: [Estimation](../concepts/01-envelope-estimation/back-of-the-envelope-estimation.md) (01) · [Interview Framework](../concepts/00-framework/system-design-interview-framework.md) (01) · [Load Balancing & Consistent Hashing](../concepts/03-networking-and-delivery/load-balancing-and-consistent-hashing.md) (01, 03) · [AuthN & AuthZ](../concepts/04-apis/authentication-and-authorization.md) (02) · [Caching](../concepts/06-caching/caching.md) (02, 03) · [CDN](../concepts/03-networking-and-delivery/cdn.md) (03) · [API Security](../concepts/04-apis/api-security.md) (03) · [Consistency Models](../concepts/08-distributed-systems/consistency-models.md) (02, 03) · [Databases](../concepts/05-databases-and-storage/databases-fundamentals.md) (03) · [Monolith vs Microservices](../concepts/02-foundations/monolithic-vs-microservices.md) (02)
 
 ---
 
@@ -32,6 +33,10 @@ Read-heavy KV store + click analytics. **Strong:** throughput estimation, cache-
 ### [02 — Basic E-commerce Platform](./02-session/README.md) · ⚠️ 6.6/10
 
 Listings + cart + payments for small businesses; delivery-first, scale deprioritized. **Strong:** pragmatic requirements trade-off, monolith-first instinct, clean REST design, **failure handling** (pending-status + async reconciliation), and sound bottleneck reasoning (read replicas, replication lag, webhook, SSE). **Lost points on:** no **data model / schema**, no **security / auth** (buyer vs seller), no **caching or CDN** for a read-heavy catalog, a **stale diagram**, and the missed **concurrent-last-unit** edge case. Interviewer's own verdict was **FAIL** — the silent senior axes sank it. → **[Read the full write-up →](./02-session/README.md)**
+
+### [03 — E-commerce Platform (Re-attempt of S02)](./03-session/README.md) · ⚠️ 6.5/10
+
+**Same prompt as S02, re-solved after drilling the gaps** — the clearest progress signal so far. **What closed:** the blind spots that failed S02 all appeared *unprompted* — estimation numbers (5k users, 100:1, ~1000 RPS), a **drawn data-model schema**, **Redis caching** + invalidation, a **CDN** for images, and an **auth module** with buyer/seller authZ. That flipped the interviewer's verdict **FAIL → Lean Hire**. **What survived:** the **concurrent-last-unit race** was missed *again* (Problem-Solving dropped 7 → 6), no **Orders** table (only Payments), **payment-data / PCI security** untouched, and the diagram went from *stale* to *cluttered*. → **[Read the full write-up →](./03-session/README.md)**
 
 ---
 

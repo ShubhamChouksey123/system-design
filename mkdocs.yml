@@ -82,6 +82,7 @@ not_in_nav: |
   docs/TODO.md
   practice/01-session/script.md
   practice/02-session/script.md
+  practice/03-session/script.md
 
 nav:
   - Home: index.md
@@ -141,3 +142,4 @@ nav:
       - Opening Ritual (Drill Card): practice/opening-ritual.md
       - "Session 01 — URL Shortener": practice/01-session/README.md
       - "Session 02 — E-commerce": practice/02-session/README.md
+      - "Session 03 — E-commerce (Re-attempt)": practice/03-session/README.md
