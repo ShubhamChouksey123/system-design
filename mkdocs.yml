@@ -81,6 +81,7 @@ not_in_nav: |
   concepts/GUIDELINES.md
   docs/TODO.md
   practice/01-session/script.md
+  practice/02-session/script.md
 
 nav:
   - Home: index.md
@@ -137,4 +138,6 @@ nav:
   - Mock Interviews:
       - Overview & scorecards: practice/README.md
       - Answer Framework (Playbook): practice/answer-framework.md
+      - Opening Ritual (Drill Card): practice/opening-ritual.md
       - "Session 01 — URL Shortener": practice/01-session/README.md
+      - "Session 02 — E-commerce": practice/02-session/README.md
