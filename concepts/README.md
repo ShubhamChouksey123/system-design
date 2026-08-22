@@ -7,11 +7,11 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 ## 📊 Progress Tracking
 
-Track your overall concepts: **25 / 47 completed (53%)** *(read + revised)*
+Track your overall concepts: **25 / 49 completed (51%)** *(read + revised)*
 
-- **Written:** 39 / 48 — **81%** *(9 in backlog — the `*(todo)*` rows)*
-- **Read:** 25 / 47 — **53%**
-- **Revised:** 0 / 47 — **0%**
+- **Written:** 40 / 49 — **82%** *(9 in backlog — the `*(todo)*` rows)*
+- **Read:** 25 / 49 — **51%**
+- **Revised:** 0 / 49 — **0%**
 
 > Tick `☐ → ✅` in the table as you go; run `scripts/progress.sh` to refresh these counts.
 
@@ -57,6 +57,7 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | | [Unique ID Generation — Snowflake, UUID](./05-databases-and-storage/unique-id-generation.md) |  ☐   | ☐ | —             |
 | **06 · Caching** | [Caching](./06-caching/caching.md) |  ☐   | ☐ | —             |
 | | [Distributed Caching — Redis & Memcached](./06-caching/redis-and-memcached.md) |  ☐   | ☐ | —             |
+| | ↳ [Redis Sorted Sets (ZSET)](./06-caching/redis-sorted-sets.md) |  ☐   | ☐ | —             |
 | **07 · Messaging & Events** | [Message Queue](./07-messaging-and-events/message-queue.md) |  ☐   | ☐ | —             |
 | | [Apache Kafka](./07-messaging-and-events/apache-kafka.md) |  ☐   | ☐ | —             |
 | | [Event-Driven Architecture](./07-messaging-and-events/event-driven-architecture.md) |  ☐   | ☐ | —             |

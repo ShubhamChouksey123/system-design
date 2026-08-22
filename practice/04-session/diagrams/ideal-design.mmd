@@ -1,0 +1,73 @@
+flowchart LR
+    Bidder([Bidder])
+    Watcher([Watcher / Browser])
+
+    CDN[/CDN + S3<br/>item images/]
+    GW[API Gateway<br/>authN/Z · rate limiting]
+
+    subgraph WRITE["Write path — CP · reject invalid bid"]
+        BID["Bid Service<br/>single writer per auction"]
+        ADB[("Auctions DB · PostgreSQL<br/>atomic conditional UPDATE<br/>WHERE current_price &lt; bid")]
+        LOG[["Bids log<br/>append-only · source of truth"]]
+        ZSET[("Redis ZSET<br/>live highest bid")]
+    end
+
+    subgraph RT["Real-time fan-out — AP"]
+        PS{{"Pub/Sub<br/>Redis / Kafka · channel per auction"}}
+        CONN["Connection tier<br/>SSE · server→client · stateless"]
+    end
+
+    subgraph READ["Read path — AP · browse/watch"]
+        BROWSE["Auction / Browse Service"]
+        CACHE[("Redis cache")]
+        RDB[("Read replicas")]
+    end
+
+    subgraph LIFE["Lifecycle"]
+        TIMER["Timer / Scheduler<br/>delay queue · exactly-once<br/>OPEN→CLOSING→CLOSED"]
+    end
+
+    subgraph MONEY["Payments"]
+        ORD[("Orders / Payments DB · PostgreSQL")]
+        PAY["Payment Service<br/>idempotency key"]
+        RECON["Reconciliation job"]
+        STRIPE[/Stripe/]
+    end
+
+    Bidder -->|"POST /bid"| GW
+    GW --> BID
+    BID -->|"1 · guard invariant · one txn"| ADB
+    BID -->|"2 · append every bid · same txn"| LOG
+    ADB -.->|"3 · ack (commit OK)"| BID
+    BID -.->|"4 · update highest"| ZSET
+    BID -.->|"5 · write-through price<br/>only after DB ack"| CACHE
+    BID -->|"6 · publish new highest"| PS
+    PS --> CONN
+    CONN -.->|"live updates"| Watcher
+
+    Watcher -->|"GET browse"| GW
+    GW --> BROWSE
+    BROWSE --> CACHE
+    BROWSE --> RDB
+    ADB -.->|"async replication"| RDB
+    Watcher -->|"images"| CDN
+
+    TIMER -->|"close auction"| ADB
+    TIMER -->|"create order on win"| ORD
+    TIMER --> PAY
+    PAY -->|"charge · tokenized"| STRIPE
+    STRIPE -.->|"webhook"| PAY
+    RECON -.->|"poll stuck payments"| PAY
+    PAY --> ORD
+
+    classDef write fill:#fdecea,stroke:#c0392b,color:#7b241c;
+    classDef read fill:#eaf2fd,stroke:#2471a3,color:#1a5276;
+    classDef rt fill:#eafaf1,stroke:#1e8449,color:#145a32;
+    classDef money fill:#fef5e7,stroke:#b9770e,color:#7e5109;
+    classDef life fill:#f4ecf7,stroke:#7d3c98,color:#4a235a;
+
+    class BID,ADB,LOG,ZSET write;
+    class BROWSE,CACHE,RDB read;
+    class PS,CONN rt;
+    class ORD,PAY,RECON,STRIPE money;
+    class TIMER life;

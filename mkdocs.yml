@@ -126,6 +126,7 @@ nav:
       - "06 · Caching":
           - Caching — Strategies & Eviction: concepts/06-caching/caching.md
           - Distributed Caching — Redis & Memcached: concepts/06-caching/redis-and-memcached.md
+          - Redis Sorted Sets (ZSET): concepts/06-caching/redis-sorted-sets.md
       - "07 · Messaging & Events":
           - Message Queues & Brokers: concepts/07-messaging-and-events/message-queue.md
           - Apache Kafka: concepts/07-messaging-and-events/apache-kafka.md
