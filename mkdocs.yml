@@ -79,10 +79,13 @@ exclude_docs: |
 # Built but intentionally kept out of the nav menu (so their inbound links still resolve).
 not_in_nav: |
   concepts/GUIDELINES.md
+  practice/GUIDELINES.md
   docs/TODO.md
   practice/01-session/script.md
   practice/02-session/script.md
   practice/03-session/script.md
+  practice/04-session/script.md
+  practice/05-session/script.md
 
 nav:
   - Home: index.md
@@ -134,6 +137,7 @@ nav:
       - "08 · Distributed Systems":
           - Single Point of Failure: concepts/08-distributed-systems/single-point-of-failure.md
           - Consistency Models — Strong, Eventual, Quorum: concepts/08-distributed-systems/consistency-models.md
+          - Concurrency Control — Locks, CAS, Atomic Update, Single-Writer: concepts/08-distributed-systems/concurrency-control.md
       - "09 · Reliability & Operations":
           - Resilience Patterns — Timeouts, Retries, Circuit Breakers: concepts/09-reliability-and-operations/resilience-patterns.md
           - Observability — Logs, Metrics, Tracing & SLOs: concepts/09-reliability-and-operations/observability.md
@@ -144,3 +148,5 @@ nav:
       - "Session 01 — URL Shortener": practice/01-session/README.md
       - "Session 02 — E-commerce": practice/02-session/README.md
       - "Session 03 — E-commerce (Re-attempt)": practice/03-session/README.md
+      - "Session 04 — Online Auction": practice/04-session/README.md
+      - "Session 05 — Learning Platform": practice/05-session/README.md

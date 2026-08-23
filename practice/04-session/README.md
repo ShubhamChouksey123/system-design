@@ -68,7 +68,7 @@ Almost all the lost points came from three wrong mental models, not from missing
 
 | What I missed in the room | The answer a senior would give | Study |
 |---|---|---|
-| **Never said concretely how to handle bids at once** — I said "grab a lock" then switched to "save all bids, pick the max later" | Let the database enforce the rule in one step: `UPDATE auctions SET current_price=:bid, top_bidder=:u WHERE id=:a AND current_price < :bid`, then check whether a row actually changed — or route each auction's bids to a **single writer**. Know the three options (pessimistic lock, optimistic/version check, atomic conditional update) and pick one. | [Consistency Models](../../concepts/08-distributed-systems/consistency-models.md) |
+| **Never said concretely how to handle bids at once** — I said "grab a lock" then switched to "save all bids, pick the max later" | Let the database enforce the rule in one step: `UPDATE auctions SET current_price=:bid, top_bidder=:u WHERE id=:a AND current_price < :bid`, then check whether a row actually changed — or route each auction's bids to a **single writer**. Know the three options (pessimistic lock, optimistic/version check, atomic conditional update) and pick one. | [Concurrency Control](../../concepts/08-distributed-systems/concurrency-control.md) |
 | **Never solved sharing state across servers** — an in-memory max-heap is lost on a crash and differs on every server | Keep the highest bid in a **Redis ZSET** (shared by all servers, O(log n), acts as a live leaderboard); also save every bid to a durable log so you can rebuild it. | [Redis & Memcached](../../concepts/06-caching/redis-and-memcached.md) |
 | **Kept flip-flopping between SSE and polling** — never picked one way to do live updates at scale | **Use SSE (server→client) on a set of stateless connection servers, with pub/sub to fan messages out.** Bids go over a normal `POST /bid`; only the price update needs to be pushed, so one-way SSE is enough (you'd only need WebSocket if the browser also had to push a lot). This splits "how many people are watching" from "how fast bids are written" — the exact bottleneck raised at L204. | [Real-time Communication](../../concepts/04-apis/realtime-communication.md) |
 | **Treated the timer as fixed rounds; never covered what if the scheduler crashes / how to close only once** | One auction with a single `end_time`; a **delay queue** plus a guarded `OPEN→CLOSING→CLOSED` change so closing is **safe to run even if it fires twice**; add **anti-sniping** (a last-second bid extends the end time). | [Message Queue](../../concepts/07-messaging-and-events/message-queue.md) |
@@ -148,7 +148,7 @@ Picture a packed auction room: **most people are just watching** the price tick 
 1. **Bidder bids.** Browser sends `POST /bid` → **API Gateway** (checks identity, rate-limits spam) → **Bid Service**.
 2. **Bid Service is the sole referee for that auction.** In **one PostgreSQL transaction** (both succeed or both fail):
    - **(a) atomic conditional UPDATE** — *"set the price to this bid, but only if it's higher"*. If it isn't higher, the bid is rejected — so two people bidding in the same millisecond can't both win; the DB decides.
-   - **(b) append to the bids log** — a permanent receipt of every accepted bid.
+   - **(b) append to the bids log** (the **`bids` table** — "bids log" is just its role name, an append-only log; same store, not a second one) — a permanent receipt of every accepted bid.
    - One transaction ⇒ no window where the price moved but the bid went unrecorded (or vice-versa).
 3. **DB commits and acks — *then* refresh the fast copies.** Only **after** the ack does the Bid Service update the derived views: the **Redis ZSET** (live leaderboard) and the **Redis read cache** (`SET auction:123:price = 5000`).
    - **Order matters: DB → ack → copies.** The source of truth updates first, so no copy can ever show a price the DB rejected. (Updating the ZSET *before* commit would be a bug — a rollback would leave a phantom bid on the board.)
@@ -182,7 +182,7 @@ Picture a packed auction room: **most people are just watching** the price tick 
 |---|---|---|
 | items | id, title, description, image_urls | |
 | auctions | id, seller_id, item_id, start_time, end_time, base_price, reserve_price, **current_bid_id**, **status**, **version** | status ∈ `OPEN / CLOSING / CLOSED`; version for CAS |
-| bids | id, auction_id, bidder_id, amount, created_at | **append-only**; index `(auction_id, amount desc)` |
+| bids (= the "bids log") | id, auction_id, bidder_id, amount, created_at | **append-only source of truth**; index `(auction_id, amount desc)` |
 | orders | id, auction_id, winner_id, amount, status | records *what was won* |
 | payments | id, order_id, provider_ref, status, **idempotency_key** | tokenized via Stripe |
 
