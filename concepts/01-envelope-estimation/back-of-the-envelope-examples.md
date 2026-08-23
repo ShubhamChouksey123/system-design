@@ -7,6 +7,7 @@
 - `1 day ≈ 86,400 s ≈ 10^5 s`
 - `Peak ≈ 2 × Average`
 - `1 byte = 8 bits` → network in bits/s, storage in bytes. `1 Gbps = 125 MB/s`.
+- **Bitrate** = data consumed per second of playback (in bits/s, e.g. `5 Mbps` for 1080p video). `data = bitrate × duration` — multiply by seconds watched to get bytes, then divide by 8. Higher bitrate = sharper video + more bandwidth/storage.
 - Storage powers: KB → MB → GB → TB → PB → **EB** (each ×1000).
 - Replication factor **×3** is a common default.
 
