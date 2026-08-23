@@ -1,0 +1,64 @@
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    classDef writeCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef readCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef storeCls fill:#fff8e1,stroke:#f9a825,color:#795548;
+    classDef asyncCls fill:#fce4ec,stroke:#c2185b,color:#880e4f;
+    classDef edgeCls fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+
+    Teacher([Teacher])
+    Student([Student])
+
+    subgraph EDGE[Edge]
+        direction TB
+        GW["API Gateway<br/>authN/Z · rate limit"]:::edgeCls
+        CDN["CDN<br/>video segments + images"]:::edgeCls
+    end
+
+    subgraph WRITE[Write path]
+        direction TB
+        CourseW["Course / Enrol Service"]:::writeCls
+        ProgSvc["Progress Service<br/>idempotent upsert"]:::writeCls
+        ForumW["Forum Write Service"]:::writeCls
+        TW["Transcode Workers<br/>renditions + HLS/DASH segments"]:::writeCls
+    end
+
+    subgraph READ[Read path]
+        direction TB
+        CourseR["Read Course Service"]:::readCls
+        ForumR["Forum Read Service"]:::readCls
+    end
+
+    %% ---------- WRITE: video upload (async) ----------
+    Teacher -->|"1 · upload raw video<br/>pre-signed URL"| S3[("Object Store<br/>AWS S3")]:::storeCls
+    Teacher -->|"POST /course"| GW
+    GW --> CourseW
+    CourseW -->|write| CourseDB[("Course DB<br/>primary")]:::storeCls
+    S3 -->|"upload event"| Q[["Transcode Queue"]]:::asyncCls
+    Q --> TW
+    TW -->|"segments"| S3
+
+    %% ---------- WRITE: progress ----------
+    Student -->|"PUT /progress"| GW
+    GW --> ProgSvc
+    ProgSvc -->|"upsert (user,lesson)"| ProgDB[("Progress store")]:::storeCls
+    ProgSvc -->|"emit event"| Kafka[["Kafka"]]:::asyncCls
+    Kafka --> Analytics["Analytics<br/>teacher dashboards"]:::asyncCls
+
+    %% ---------- READ: video + course ----------
+    Student -->|"GET video"| CDN
+    CDN -.->|"miss → origin"| S3
+    Student -->|"GET /course/:id"| GW
+    GW --> CourseR
+    CourseR --> Cache[("Redis cache")]:::storeCls
+    Cache -.->|"miss"| CourseRR[("Course DB<br/>read replica")]:::storeCls
+    CourseDB -.->|"async replication"| CourseRR
+
+    %% ---------- Forum + search ----------
+    Student -->|"posts / comments"| GW
+    GW --> ForumW
+    GW --> ForumR
+    ForumW -->|write| ForumDB[("Forum DB")]:::storeCls
+    ForumR --> ForumDB
+    ForumDB -.->|"CDC"| ES[("Elasticsearch")]:::storeCls
+    ForumR -->|"search"| ES
