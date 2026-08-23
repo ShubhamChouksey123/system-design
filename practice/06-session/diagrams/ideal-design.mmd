@@ -1,0 +1,40 @@
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    classDef writeCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef readCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef storeCls fill:#fff8e1,stroke:#f9a825,color:#795548;
+    classDef edgeCls fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+    classDef growthCls fill:#f5f5f5,stroke:#9e9e9e,color:#616161,stroke-dasharray:5 4;
+
+    Client([Client])
+
+    subgraph EDGE[Edge]
+        direction TB
+        GW["API Gateway<br/>authN · authZ"]:::edgeCls
+        CDN["CDN<br/>image reads"]:::edgeCls
+    end
+
+    subgraph APP[Application - single deployable]
+        direction TB
+        Mono["Monolith Backend<br/>Profile · Post · Feed modules"]:::writeCls
+    end
+
+    %% ---------- WRITE path ----------
+    Client -->|"POST /posts · POST /profile"| GW
+    GW --> Mono
+    Mono -->|"write text + metadata"| DB[("SQL DB<br/>primary")]:::storeCls
+    Mono -->|"put image (pre-signed URL)"| S3[("Object Store<br/>AWS S3")]:::storeCls
+    Mono -.->|"invalidate feed/profile on write"| Cache[("Redis cache")]:::storeCls
+    Mono -->|"follow / unfollow"| DB
+
+    %% ---------- READ path ----------
+    Client -->|"GET /feed · GET /profile/:id"| GW
+    GW --> Mono
+    Mono -->|"read (cache-aside)"| Cache
+    Cache -.->|"miss → query + warm"| DB
+    Client -->|"GET image"| CDN
+    CDN -.->|"miss → origin"| S3
+
+    %% ---------- Growth path (deferred, sized by estimation) ----------
+    DB -.->|"add when one hot table saturates"| RR[("Read Replica")]:::growthCls
+    Mono -.->|"heavy reads at scale"| RR

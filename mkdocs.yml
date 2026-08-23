@@ -86,6 +86,7 @@ not_in_nav: |
   practice/03-session/script.md
   practice/04-session/script.md
   practice/05-session/script.md
+  practice/06-session/script.md
 
 nav:
   - Home: index.md
@@ -150,3 +151,4 @@ nav:
       - "Session 03 — E-commerce (Re-attempt)": practice/03-session/README.md
       - "Session 04 — Online Auction": practice/04-session/README.md
       - "Session 05 — Learning Platform": practice/05-session/README.md
+      - "Session 06 — Social Networking MVP": practice/06-session/README.md
