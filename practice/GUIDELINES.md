@@ -92,7 +92,7 @@ Session diagrams live in `NN-session/diagrams/`, and the **source is committed b
 A session isn't logged until the roll-ups are updated:
 
 - **[`practice/README.md`](./README.md)** — add the session **row** to the Sessions table (all five axes + Overall + verdict), add its **write-up blurb**, extend the **Related concepts** line with the session tag, and **promote any repeated feedback** into *Consolidated Tips* (score histories + `[SNN]` tags, weakest axis first), *Recurring Action Items*, and *How to Improve*. **That aggregation is the whole point** of the tracker — a one-off note that isn't rolled up is lost.
-- **[`mkdocs.yml`](../mkdocs.yml)** — add the README under `nav:` (`"Session NN — <short name>": practice/NN-session/README.md`) and the transcript under `not_in_nav:` (`practice/NN-session/script.md`). CI runs `mkdocs build --strict`, so a broken relative link fails the build.
+- **`mkdocs.yml`** (repo root) — add the README under `nav:` (`"Session NN — <short name>": practice/NN-session/README.md`) and the transcript under `not_in_nav:` (`practice/NN-session/script.md`). CI runs `mkdocs build --strict`, so a broken relative link fails the build.
 
 ## 9. Markdown formatting (so it renders)
 
