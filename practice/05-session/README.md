@@ -108,7 +108,7 @@ The point of estimating here is to prove that **video dominates storage + bandwi
 
 Read and write flows are drawn separately on purpose — the whole design rests on **decoupling the cheap-and-huge read path (video) from the small, correctness-sensitive write path (progress, course metadata)**.
 
-![Ideal learning-platform architecture as a Mermaid flowchart with the write path and read path in separate labeled clusters. Teachers upload raw video via a pre-signed URL straight to AWS S3, which emits an upload event to a transcode queue whose workers produce bitrate renditions and HLS or DASH segments back into S3. Course and progress writes go through the API gateway to the Course/Enrol Service and the Progress Service, which does an idempotent upsert into a progress store and emits an event to Kafka for the analytics dashboards. The read path serves video from the CDN with S3 as origin on a miss, and course metadata from the Read Course Service backed by a Redis cache that falls through to an asynchronously replicated Course DB read replica. The forum has separate write and read services over a forum database, with change data capture feeding Elasticsearch for search](./diagrams/ideal-design.png)
+![Ideal learning-platform architecture as a Mermaid flowchart with the write path and read path in separate labeled clusters. Teachers upload raw video via a pre-signed URL straight to AWS S3, which emits an upload event to a transcode queue whose workers produce bitrate renditions and HLS or DASH segments back into S3. Course and progress writes go through the API gateway to the Course/Enrol Service and the Progress Service, which does an idempotent upsert into a progress store and emits an event to Kafka for the analytics dashboards. The read path serves video from the CDN with S3 as origin on a miss, and course metadata from the Read Course Service backed by a Redis cache that falls through to an asynchronously replicated Course DB read replica. The forum has separate write and read services over a forum database; the Forum Read Service is likewise fronted by a Redis cache that falls through to the Forum DB on a miss, and change data capture feeds Elasticsearch for search](./diagrams/ideal-design.png)
 
 | Layer | Component | Store |
 |---|---|---|
@@ -124,12 +124,45 @@ Read and write flows are drawn separately on purpose — the whole design rests 
 This is the depth the session missed. Upload is a **write-once, read-many** flow, done **asynchronously**:
 
 1. Teacher uploads the raw file → object store (a **pre-signed S3 URL**, so bytes bypass your servers).
-2. Upload event → queue → **transcoding workers** produce multiple **bitrate renditions** (1080p/720p/480p).
+2. Upload event → **transcode queue** → **transcode workers** produce multiple **bitrate renditions** (1080p/720p/480p).
 3. Each rendition is **segmented for adaptive streaming** — **HLS/DASH**: a manifest (`.m3u8`/`.mpd`) + short **`.ts`/`.m4s` segments**.
 4. Segments land in S3; the **CDN** fronts them.
 5. Playback: the client fetches the manifest, then **adaptive bitrate (ABR)** picks a rendition per segment based on the viewer's live bandwidth — smooth start, no buffering on a weak connection.
 
-> *That's the real reason to "chunk" a video* — segments enable ABR + CDN caching, not just storage. Naming HLS/DASH + ABR is the senior signal here.
+The ideas that make this work:
+
+#### 4a. Transcoding — why the raw upload can't be streamed as-is
+
+The teacher uploads *one* huge file in *one* format at *one* resolution (e.g. a 4 GB 1080p `.mov`). It can't be served directly — a phone on weak Wi-Fi can't pull 1080p, and players won't accept one giant file. **Transcoding** (via **FFmpeg**) re-encodes it into many smaller, streamable outputs. It's **slow** (minutes) and **CPU-heavy** — hence dedicated workers, not the upload request.
+
+#### 4b. Resolutions & bitrate renditions — one video, several qualities
+
+A **rendition** is the same video re-encoded at a different **resolution + bitrate**, so every network gets a version it can play:
+
+| Rendition | Resolution | Typical bitrate | For |
+|---|---|---|---|
+| 1080p | 1920×1080 | ~5 Mbps | fast Wi-Fi / desktop |
+| 720p | 1280×720 | ~2.5 Mbps | average broadband |
+| 480p | 854×480 | ~1 Mbps | mobile / weak connection |
+
+More resolution → higher bitrate → sharper but heavier. Producing ~3–4 renditions is why §1's storage estimate multiplies source by **×4**.
+
+#### 4c. Formats & segmentation — why we "chunk" the video
+
+A streaming **format** (**HLS** — Apple, or **DASH** — open) splits each rendition into short chunks (2–10 s: `.ts`/`.m4s`) plus a **manifest** (`.m3u8`/`.mpd`) listing every segment and its bitrate. This enables **adaptive bitrate (ABR)**: per segment, the player picks the rendition matching current bandwidth — quality steps down when the network dips, back up when it recovers, no buffering. Chunks are also independently **CDN-cacheable**.
+
+> *That's the real reason to "chunk" a video* — segments enable ABR + CDN caching, not just storage. Naming transcoding + HLS/DASH + ABR is the senior signal here.
+
+#### 4d. Why a queue *and* a worker pool
+
+The **transcode queue** (AWS SQS / a Kafka topic) holds "transcode this video" jobs; the **transcode workers** are the CPU-heavy servers that pull and encode them. Splitting them buys:
+
+- **Decoupling** — upload drops a job and returns immediately, never waiting minutes for encoding.
+- **Load levelling** — a burst of uploads piles up safely in the queue; workers drain at their own pace.
+- **Durability / retries** — a worker crash leaves the job on the queue for redelivery.
+- **Elastic scaling** — add workers at peak, scale to zero when idle, all off one queue.
+
+It's the textbook [producer → queue → worker-pool](../../concepts/07-messaging-and-events/message-queue.md) pattern (kitchen ticket-rail + cooks).
 
 ### 5. Progress tracking — make it feel instant *and* be correct
 

@@ -59,6 +59,7 @@ flowchart LR
     GW --> ForumW
     GW --> ForumR
     ForumW -->|write| ForumDB[("Forum DB")]:::storeCls
-    ForumR --> ForumDB
+    ForumR --> ForumCache[("Redis cache")]:::storeCls
+    ForumCache -.->|"miss"| ForumDB
     ForumDB -.->|"CDC"| ES[("Elasticsearch")]:::storeCls
     ForumR -->|"search"| ES

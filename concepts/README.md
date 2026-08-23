@@ -7,10 +7,10 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 ## 📊 Progress Tracking
 
-Track your overall concepts: **25 / 50 completed (50%)** *(read + revised)*
+Track your overall concepts: **27 / 50 completed (54%)** *(read + revised)*
 
 - **Written:** 41 / 50 — **82%** *(9 in backlog — the `*(todo)*` rows)*
-- **Read:** 25 / 50 — **50%**
+- **Read:** 27 / 50 — **54%**
 - **Revised:** 0 / 50 — **0%**
 
 > Tick `☐ → ✅` in the table as you go; run `scripts/progress.sh` to refresh these counts.
@@ -22,8 +22,8 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | Section | Concept | Read | Revised | Last Revision |
 |---|---|:----:|:--:|---------------|
 | **00 · Framework** | [System Design Interview Framework](./00-framework/system-design-interview-framework.md) |  ☐   | ☐ | —             |
-| **01 · Envelope Estimation** | [Back-of-the-Envelope Estimation](./01-envelope-estimation/back-of-the-envelope-estimation.md) |  ☐   | ☐ | —             |
-| | ↳ [Worked Examples](./01-envelope-estimation/back-of-the-envelope-examples.md) |  ☐   | ☐ | —             |
+| **01 · Envelope Estimation** | [Back-of-the-Envelope Estimation](./01-envelope-estimation/back-of-the-envelope-estimation.md) |  ✅   | ☐ | 2026-08-23    |
+| | ↳ [Worked Examples](./01-envelope-estimation/back-of-the-envelope-examples.md) |  ✅   | ☐ | 2026-08-23    |
 | **02 · Foundations** | [Basics — Cloud, API, Scalability](./02-foundations/basics.md) |  ☐   | ☐ | —             |
 | | [Non-Functional Requirements — the "-ilities"](./02-foundations/non-functional-requirements.md) |  ☐   | ☐ | —             |
 | | [Monolithic vs Microservices](./02-foundations/monolithic-vs-microservices.md) |  ☐   | ☐ | —             |
@@ -67,8 +67,8 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | | Consensus & Leader Election — Raft / Paxos *(todo)* |  ☐   | ☐ | —             |
 | | Distributed Transactions — 2PC / Saga / CDC *(todo)* |  ☐   | ☐ | —             |
 | | Batch vs Stream Processing *(todo)* |  ☐   | ☐ | —             |
-| **09 · Reliability & Operations** | [Resilience Patterns — retries, circuit breaker](./09-reliability-and-operations/resilience-patterns.md) |  ✅   | ☐ | 2026-08-18             |
-| | [Observability — logs, metrics, tracing, SLO](./09-reliability-and-operations/observability.md) |  ✅   | ☐ | 2026-08-18             |
+| **09 · Reliability & Operations** | [Resilience Patterns — retries, circuit breaker](./09-reliability-and-operations/resilience-patterns.md) |  ✅   | ☐ | 2026-08-18    |
+| | [Observability — logs, metrics, tracing, SLO](./09-reliability-and-operations/observability.md) |  ✅   | ☐ | 2026-08-18    |
 | **Broader tracks** | AWS — core services mapped to concepts *(todo)* |  ☐   | ☐ | —             |
 | | AI curriculum *(todo)* |  ☐   | ☐ | —             |
 
