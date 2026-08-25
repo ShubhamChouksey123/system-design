@@ -22,7 +22,7 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | Section | Concept | Read | Revised | Last Revision |
 |---|---|:----:|:--:|---------------|
 | **00 · Framework** | [System Design Interview Framework](./00-framework/system-design-interview-framework.md) |  ☐   | ☐ | —             |
-| **01 · Envelope Estimation** | [Back-of-the-Envelope Estimation](./01-envelope-estimation/back-of-the-envelope-estimation.md) |  ✅   | ☐ | 2026-08-23    |
+| **01 · Envelope Estimation** | [Back-of-the-Envelope Estimation](./01-envelope-estimation/back-of-the-envelope-estimation.md) |  ✅   | ✅ | 2026-08-25    |
 | | ↳ [Worked Examples](./01-envelope-estimation/back-of-the-envelope-examples.md) |  ✅   | ☐ | 2026-08-23    |
 | **02 · Foundations** | [Basics — Cloud, API, Scalability](./02-foundations/basics.md) |  ☐   | ☐ | —             |
 | | [Non-Functional Requirements — the "-ilities"](./02-foundations/non-functional-requirements.md) |  ☐   | ☐ | —             |

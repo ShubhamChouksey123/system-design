@@ -1,0 +1,31 @@
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    classDef checkCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef denyCls fill:#ffebee,stroke:#c62828,color:#b71c1c;
+    classDef allowCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef storeCls fill:#fff8e1,stroke:#f9a825,color:#795548;
+    classDef edgeCls fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+
+    Client([Client])
+
+    subgraph EDGE[Edge tier - stateless, horizontally scaled behind an LB]
+        direction TB
+        GW["API Gateway<br/>+ rate-limit middleware<br/>any instance handles any client"]:::edgeCls
+    end
+
+    Backend["Backend Service"]:::allowCls
+
+    %% ---------- CHECK path (every request) ----------
+    Client -->|"request + client_id / API key"| GW
+    GW -->|"atomic check-and-incr (Lua)<br/>token bucket / sliding window"| Redis[("Redis cluster<br/>counters — source of truth<br/>sharded by client_id, replicated")]:::checkCls
+    GW -.->|"load rules, cached in memory + short TTL"| Config[("Config store<br/>limits per client · tier · endpoint")]:::storeCls
+
+    %% ---------- ALLOW path ----------
+    GW ==>|"under limit → forward"| Backend
+
+    %% ---------- DENY path ----------
+    GW -->|"over limit → 429 + Retry-After"| Deny[["429 Too Many Requests"]]:::denyCls
+    Deny --> Client
+
+    %% ---------- Resilience ----------
+    Redis -.->|"node down → fail-open or fail-closed<br/>per business policy"| GW
