@@ -14,7 +14,7 @@
 
 > Design a **distributed rate limiting system** that can **protect APIs from abuse** while ensuring **fair usage across different clients** and **maintaining high performance**.
 
-Rate limiting looks like a CRUD-with-a-counter problem and is actually a **distributed-concurrency** problem wearing a small diagram. Every incoming request reads and mutates the *same* per-client counter, at peak QPS, across many stateless instances — so the entire design collapses to two questions: **(1) how do you increment that counter correctly when N instances race on it?** (answer: an *atomic* operation in the shared store, never read-modify-write in app code) and **(2) which counting algorithm do you use?** (fixed window is trivial but bursts 2× at boundaries; sliding-window-counter and token-bucket are what real limiters ship). Everything else — 429s, `Retry-After`, config, HA — is standard. The trap is designing the boxes and hand-waving the counter.
+Rate limiting looks like a CRUD-with-a-counter problem and is actually a **distributed-concurrency** problem wearing a small diagram. Every incoming request reads and mutates the *same* per-client counter, at peak QPS, across many stateless instances — so the entire design collapses to two questions: **(1) how do you increment that counter correctly when N instances race on it?** (answer: an *atomic* operation in the shared store, never read-modify-write in app code) and **(2) which counting algorithm do you use?** (fixed window is trivial but bursts 2× at boundaries; sliding-window-counter and token-bucket are what real limiters ship). Everything else — 429s, `Retry-After`, config, High Availability — is standard. The trap is designing the boxes and hand-waving the counter.
 
 ## Requirements & estimation
 
@@ -83,7 +83,7 @@ The process instincts were the strength this time — the ability to *evolve* a 
 | Clients / DAU | 10M total · 50% active | **5M DAU** | key space is millions, not billions |
 | Average QPS | 5M × 1000/day ÷ 10⁵ s | **~50k QPS** | in-memory store only; a DB can't sit on this path |
 | Peak QPS | 2× average | **~100k QPS** | atomic op must be **O(1)**, single round trip |
-| Counter memory | 5M clients × ~100 B | **~500 MB** | **fits one Redis node** — capacity is a non-issue; replicate for HA, shard for throughput |
+| Counter memory | 5M clients × ~100 B | **~500 MB** | **fits one Redis node** — capacity is a non-issue; replicate for High Availability, shard for throughput |
 | Edge instances | 100k ÷ ~1k QPS each, ×2 failover | **~200** | stateless tier behind an LB; scale horizontally |
 
 > The number that reframes the problem: **~500 MB of counters.** It proves the store is trivially small, there's **no durable-DB requirement on the hot path**, and the real constraints are **atomic-op latency** and **hot-key throughput** — not storage.
@@ -98,7 +98,7 @@ The process instincts were the strength this time — the ability to *evolve* a 
 
 The limiter lives **inside the edge tier** (API gateway / middleware), stateless and horizontally scaled. The only stateful component on the hot path is the **counter store** (Redis), hit with one **atomic** operation per request. A separate **config store** holds the rules, cached in memory.
 
-![Ideal distributed rate limiter as a Mermaid flowchart. A client sends each request carrying a client id or API key into a stateless edge tier of API gateway instances with rate-limit middleware behind a load balancer, where any instance can handle any client. On every request the gateway performs a single atomic check-and-increment against a Redis cluster that holds the per-client counters as the source of truth, sharded by client id and replicated, using a Lua script implementing token bucket or sliding window; it also loads rate-limit rules from a config store keyed by client, tier, and endpoint, cached in memory with a short TTL. When the client is under its limit the gateway forwards the request to the backend service; when over the limit it returns 429 Too Many Requests with a Retry-After header to the client. If a Redis node goes down the gateway falls open or fails closed according to business policy](./diagrams/ideal-design.png)
+![Ideal distributed rate limiter as a Mermaid flowchart. A client sends each request carrying a client id or API key into a stateless edge tier of API gateway instances with rate-limit middleware behind a load balancer, where any instance can handle any client. On every request the gateway performs a single atomic check-and-increment using a Lua script implementing token bucket or sliding window, routed by client id to the shard that owns that client. The counters live in a Redis cluster shown as the source of truth and split into two shards, shard 1 holding client ids that hash to slot A and shard 2 holding client ids that hash to slot B, giving horizontal throughput; each shard primary replicates to a replica with automatic failover for fault tolerance. The gateway also loads rate-limit rules from a config store keyed by client, tier, and endpoint, cached in memory with a short TTL. When the client is under its limit the gateway forwards the request to the backend service; when over the limit it returns 429 Too Many Requests with a Retry-After header to the client. If a shard goes down the gateway fails open or fails closed according to business policy](./diagrams/ideal-design.png)
 
 | Layer | Component | Store |
 |---|---|---|
@@ -111,36 +111,100 @@ The limiter lives **inside the edge tier** (API gateway / middleware), stateless
 
 ### 4. The algorithm — the one component worth real depth
 
-For a rate limiter, the counting algorithm *is* the domain. Know the four and their trade-offs cold:
+For a rate limiter, the counting algorithm *is* the domain. Know the five and their trade-offs cold — and, crucially, be able to **pick one and defend it**:
 
-| Algorithm | How it works | Trade-off |
-|---|---|---|
-| **Fixed window** | one counter per `(client, window)`; `INCR`, reset each window | Simplest, but **~2× burst at boundaries** (400 req across two adjacent 1-s windows) |
-| **Sliding-window log** | store a timestamp per request, count those inside the window | **Exact**, but O(requests) memory — too heavy at scale |
-| **Sliding-window counter** | weight prev window by overlap fraction: `prev × overlap% + curr` | **Approximate but smooth**, ~2 counters/client — the **sweet spot** |
-| **Token bucket** | tokens refill at a fixed rate; each request spends one; bucket caps burst | **Allows controlled bursts**, industry default (Stripe, AWS, Cloudflare) |
-| **Leaky bucket** | requests queue and drain at a fixed rate | **Smooths output**, adds queueing latency |
+| Algorithm | How it works | Trade-off | Verdict for this design |
+|---|---|---|:--|
+| **Fixed window** | one counter per `(client, window)`; `INCR`, reset each window | Simplest, but **~2× burst at boundaries** (400 req across two adjacent 1-s windows) | ❌ the boundary burst is an abuse vector — unacceptable for an abuse-protection tool |
+| **Sliding-window log** | store a timestamp per request, count those inside the window | **Exact**, but O(requests) memory — too heavy at scale | ❌ one entry per request blows the ~500 MB budget at 100k QPS |
+| **Sliding-window counter** | weight prev window by overlap fraction: `prev × overlap% + curr` | **Approximate but smooth**, ~2 counters/client | ✅ strong runner-up — pick it if the business must **forbid bursts** |
+| **Token bucket** | tokens refill at a fixed rate; each request spends one; bucket caps burst | **Allows controlled bursts**, industry default (Stripe, AWS, Cloudflare) | ✅✅ **chosen** — bursts-but-bounded matches "fair usage without blocking legit spikes" |
+| **Leaky bucket** | requests queue and drain at a fixed rate | **Smooths output**, adds queueing latency | ❌ it *queues* to pace a downstream; a limiter should **reject** (429), not buffer |
+
+**Verdict — use token bucket.** After ruling out fixed window (boundary burst), sliding-window log (memory), and leaky bucket (queues instead of rejecting), the choice is token bucket vs. sliding-window counter — both defensible. Token bucket wins as the default because real API traffic is **bursty but legitimate**: a client idle for a while then firing 10 requests has *saved up tokens* and should pass, while one sustaining 1000 req/s is stopped. That is exactly "protect from abuse **while ensuring fair usage**." Switch to **sliding-window counter** only when bursts must be strictly forbidden (e.g. a fragile downstream that can't absorb spikes).
 
 **The concurrency fix that makes any of them correct:** do the read-check-write as **one atomic operation on the node that owns the key** — `INCR` + `EXPIRE` for fixed window, or a **Lua script** for token bucket / sliding window (Redis runs it atomically, single round trip). This dissolves the read-modify-write race *and* the malicious-concurrency exploit — no locks, no transactions, no added latency.
 
-> Naming **token bucket / sliding-window counter** *and* **atomic `INCR`/Lua** is the senior signal the session missed — it's the difference between "a box called Cache" and a limiter that actually enforces the limit under contention.
+Concretely, the **fixed-window** check on each request is just this — the whole race disappears because `INCR` is executed indivisibly *on the Redis server*, so N racing instances can never read the same value and both write back `+1`:
+
+```text
+# Indivisible increment executed on the Redis server — key is rl:{client_id}:{window}
+current_count = INCR "rl:user_123:1700000000"
+
+# First hit in this window creates the key at 1 → attach the TTL so it self-expires
+IF current_count == 1 THEN
+    EXPIRE "rl:user_123:1700000000" 60
+END IF
+
+IF current_count > 100 THEN
+    RETURN 429 Too Many Requests   # + Retry-After
+END IF
+# else: under limit → forward to backend
+```
+
+> **Why the `IF … == 1` and not a plain `EXPIRE` every time:** you only want to stamp the TTL when the window *starts*, so a busy client can't keep pushing the expiry forward and never reset. The one subtlety: `INCR` and `EXPIRE` are two commands, so if the process dies between them the key could live forever without a TTL — in production fold both into a **single Lua script** (or `SET … EX` semantics) so the create-and-expire is itself atomic. Token bucket / sliding-window counter follow the same shape, just with more state per key (`tokens, last_refill`), which is *why* they need a Lua script rather than a bare `INCR`.
+
+#### Token bucket — the chosen algorithm, end to end
+
+The bucket holds up to **`capacity`** tokens; each allowed request **spends one**; tokens **refill at a steady `rate`** (e.g. 100/s). `capacity` caps the *instantaneous* burst, `rate` caps the *sustained* average. The refill is computed **lazily on each request** from elapsed time — there is **no background job** topping up 5M buckets every second (the trap that would be 5M writes/s).
+
+![Token bucket algorithm as a flowchart. A request carrying a client id enters a single atomic Lua script that runs on the Redis shard owning that client id. Inside the script the bucket state — tokens and last refill timestamp — is loaded, and on a client's first sighting the bucket starts full at capacity. The script then lazily refills the bucket with no background job by setting tokens to the minimum of capacity and the current tokens plus elapsed time times the refill rate, and updates last refill to now. It then checks whether tokens is at least one; if yes it spends a token by decrementing, saves the new tokens and last refill and sets a TTL, and the request is forwarded to the backend as under limit; if no the request is rejected over limit with a 429 and a Retry-After header](./diagrams/token-bucket.png)
+
+The entire load → refill → check → spend runs as **one atomic Lua script on the shard owning the key** (the whole yellow box). Concise pseudo-code:
+
+```text
+-- KEYS[1] = rl:{client_id}   ARGV = now, rate (tokens/sec), capacity, requested (=1)
+-- The whole block executes atomically on the node that owns the key
+tokens, last_refill = HMGET rl:user_123 tokens last_refill
+
+IF tokens == nil THEN                       # first sighting → start full
+    tokens = capacity
+    last_refill = now
+END IF
+
+# LAZY REFILL: credit the tokens accrued since the last request, capped at capacity
+tokens = MIN(capacity, tokens + (now - last_refill) * rate)
+last_refill = now
+
+IF tokens >= requested THEN
+    tokens = tokens - requested
+    HMSET  rl:user_123 tokens=tokens last_refill=last_refill
+    EXPIRE rl:user_123 <ttl>                # idle buckets self-evict → memory ∝ active clients
+    RETURN allow                            # → forward to backend
+ELSE
+    HMSET  rl:user_123 tokens=tokens last_refill=last_refill
+    EXPIRE rl:user_123 <ttl>
+    RETURN 429                              # + Retry-After
+END IF
+```
+
+**How token bucket kills both hard problems the session left unsolved:**
+
+| Problem | Why it happens | How token bucket solves it |
+|---|---|---|
+| **Race condition** (concurrent read-modify-write) | N instances read the same `tokens`, all decrement, all write back → lost updates, overcount, exploitable | The whole read → refill → check → decrement → write is **one atomic Lua script**. Redis executes it single-threaded on the key's owning node, so concurrent requests are **serialized** — no lost updates, no locks, one round trip. |
+| **Boundary burst** (fixed window's 2× spike) | Fixed window resets the counter *instantly* at the edge, so 100 req at `0.999s` + 100 at `1.001s` = 200 in ~2 ms | Token bucket **has no window edge** — tokens refill *continuously* at `rate`, so a full new allowance never appears at an instant. `capacity` bounds the max burst, `rate` bounds the sustained average. The burst can't exist because there's no boundary to exploit. |
+
+> Naming **token bucket** *and* **atomic `INCR`/Lua** is the senior signal the session missed — it's the difference between "a box called Cache" and a limiter that actually enforces the limit under contention.
 
 ### 5. Resilience & fair usage
 
 - **Fail-open vs fail-closed** on counter-store outage — a business decision: **fail-open** (allow, prioritize availability) for most APIs; **fail-closed** (block, prioritize protection) for security-critical ones. Say which and why.
 - **Hot key** — one very active client is a single hot shard; mitigate with **local pre-aggregation** (edge counts locally, periodically flushes deltas to Redis — trading a little accuracy for a lot of throughput) or a dedicated shard.
-- **HA** — Redis with **replication + automatic failover** (or a managed service); the counter is ephemeral, so a lost replica costs at most one window of accuracy, never durability.
+- **High Availability** — Redis with **replication + automatic failover** (or a managed service); the counter is ephemeral, so a lost replica costs at most one window of accuracy, never durability.
 - **Fairness** — per-client keys give isolation by default; tiers and per-endpoint limits prevent one expensive endpoint from starving others.
 
 ### 6. Data model
 
-Counters are **ephemeral cache entries**, not durable rows — that's the key modeling insight. Only the **rules** are persisted.
+The bucket state is an **ephemeral cache entry**, not a durable row — that's the key modeling insight. Only the **rules** are persisted.
 
-| Store | Key / Table | Fields | Note |
+| Store | Key / structure | Fields | Note |
 |---|---|---|---|
-| **Redis** (counters) | `rl:{client_id}:{window}` | count + TTL (fixed) — or `tokens, last_refill` (bucket) | **the crux "table" — ephemeral, atomic, TTL'd, never in a durable DB** |
-| Config (rules) | `rate_limit_rules` | client_id / tier / endpoint, limit, window, algorithm | cached in memory + short TTL; hot-reloadable |
+| **Redis** (bucket — the crux) | `rl:{client_id}` (add `:{endpoint}` for per-endpoint limits) as a **Redis Hash** | `tokens` (fractional), `last_refill` (unix ts) + **TTL** | **the crux "table" — the two-field token-bucket state; ephemeral, mutated by one atomic Lua script, TTL'd so idle buckets self-evict; never in a durable DB** |
+| Config (rules) | `rate_limit_rules` | client_id / tier / endpoint → **`capacity`** (max burst), **`refill_rate`** (tokens/s), algorithm | the limit *as data*; cached in memory + short TTL, hot-reloadable |
 | Config (clients) | `clients` | client_id, api_key, tier | identity + tier lookup |
+
+**Why the key has no `:{window}` suffix.** Fixed window needs a discrete bucket per time slice — `rl:{client_id}:{window}` → an integer `count` + TTL — because the count is meaningless once the slice ends. Token bucket is **continuous**: the same two fields (`tokens`, `last_refill`) live under one stable key and are re-derived from elapsed time on every request, so there's no window to encode. `tokens` is **fractional** (a refill of `elapsed × rate` rarely lands on a whole number) — store it as a float, or scale tokens ×1000 and keep integers if you prefer exactness.
 
 ### 7. Design trade-offs
 

@@ -1,0 +1,22 @@
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    classDef refill fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef decision fill:#fff8e1,stroke:#f9a825,color:#795548;
+    classDef allow fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef deny fill:#ffebee,stroke:#c62828,color:#b71c1c;
+
+    Req([Request carrying client_id]):::refill
+
+    subgraph ATOMIC[One atomic Lua script - runs on the shard that owns client_id]
+        direction LR
+        Load["Load bucket state: tokens, last_refill<br/>first sighting → tokens = capacity full bucket"]:::refill
+        Refill["Lazy refill - no background job<br/>tokens = min capacity, tokens + elapsed × rate<br/>last_refill = now"]:::refill
+        Check{"tokens ≥ 1 ?"}:::decision
+        Spend["tokens = tokens − 1<br/>save tokens + last_refill · set TTL"]:::allow
+        Load --> Refill --> Check
+        Check -->|yes| Spend
+    end
+
+    Req --> Load
+    Spend --> Allow([Under limit → forward to Backend]):::allow
+    Check -->|no| Deny([Over limit → 429 + Retry-After]):::deny

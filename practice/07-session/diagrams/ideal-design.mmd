@@ -5,6 +5,7 @@ flowchart LR
     classDef allowCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
     classDef storeCls fill:#fff8e1,stroke:#f9a825,color:#795548;
     classDef edgeCls fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+    classDef replicaCls fill:#f1f8e9,stroke:#9e9d24,color:#827717;
 
     Client([Client])
 
@@ -15,9 +16,20 @@ flowchart LR
 
     Backend["Backend Service"]:::allowCls
 
+    subgraph STORE[Redis cluster - counters, source of truth]
+        direction TB
+        S1[("Shard 1 primary<br/>client_ids hashing to slot A")]:::checkCls
+        S1R[("Shard 1<br/>replica")]:::replicaCls
+        S2[("Shard 2 primary<br/>client_ids hashing to slot B")]:::checkCls
+        S2R[("Shard 2<br/>replica")]:::replicaCls
+        S1 -.->|"replicate +<br/>auto-failover"| S1R
+        S2 -.->|"replicate +<br/>auto-failover"| S2R
+    end
+
     %% ---------- CHECK path (every request) ----------
     Client -->|"request + client_id / API key"| GW
-    GW -->|"atomic check-and-incr (Lua)<br/>token bucket / sliding window"| Redis[("Redis cluster<br/>counters — source of truth<br/>sharded by client_id, replicated")]:::checkCls
+    GW -->|"atomic check-and-incr (Lua)<br/>routed by client_id → owning shard"| S1
+    GW -->|"atomic check-and-incr (Lua)"| S2
     GW -.->|"load rules, cached in memory + short TTL"| Config[("Config store<br/>limits per client · tier · endpoint")]:::storeCls
 
     %% ---------- ALLOW path ----------
@@ -28,4 +40,4 @@ flowchart LR
     Deny --> Client
 
     %% ---------- Resilience ----------
-    Redis -.->|"node down → fail-open or fail-closed<br/>per business policy"| GW
+    S1 -.->|"shard down → fail-open or fail-closed<br/>per business policy"| GW
