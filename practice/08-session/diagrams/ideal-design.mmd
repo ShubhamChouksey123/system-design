@@ -1,0 +1,74 @@
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    classDef clientCls fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+    classDef edgeCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef svcCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef storeCls fill:#fff8e1,stroke:#f9a825,color:#795548;
+    classDef busCls fill:#fce4ec,stroke:#c2185b,color:#880e4f;
+    classDef fileCls fill:#f1f8e9,stroke:#9e9d24,color:#827717;
+
+    Sender([Sender client]):::clientCls
+    Recv([Recipient clients<br/>persistent WebSocket]):::clientCls
+
+    subgraph EDGE[Connection tier - stateful, one persistent WebSocket per online device]
+        direction TB
+        GW["WebSocket Gateway servers<br/>terminate WS + authenticate<br/>horizontally scaled"]:::edgeCls
+        REG[("Presence / session registry<br/>Redis: user_id → gateway_id<br/>heartbeat TTL, online status")]:::storeCls
+        GW <-->|"register on connect<br/>expire on disconnect"| REG
+    end
+
+    subgraph CORE[Message-handling services - stateless]
+        direction TB
+        WSVC["Send / Message service<br/>assigns message_id + per-conversation seq_no<br/>persist-then-ack"]:::svcCls
+        RSVC["Sync service<br/>pull missed messages since cursor<br/>on reconnect / app open"]:::svcCls
+        FSVC["File service<br/>issues signed S3 URL"]:::fileCls
+    end
+
+    subgraph BUS[Fan-out routing]
+        direction TB
+        MQ{{"Per-gateway topics / pub-sub<br/>route message → owning gateways"}}:::busCls
+        PUSH["Push service<br/>APNs / FCM for offline recipients"]:::svcCls
+    end
+
+    subgraph DATA[Durable stores]
+        direction TB
+        MSTORE[("Message store - NoSQL<br/>sharded by conversation_id<br/>all msgs of a chat co-located, ordered by seq_no")]:::storeCls
+        CURSOR[("Per-recipient sync cursor<br/>last_delivered_seq per user, per conversation")]:::storeCls
+        GRP[("Group / conversation store<br/>members, metadata")]:::storeCls
+    end
+
+    subgraph FILES[Media path]
+        direction TB
+        S3[("Object store - S3<br/>hot; tier to Glacier when cold")]:::fileCls
+        CMP["Compression pipeline<br/>Kafka → transcode / compress"]:::fileCls
+        CDN["CDN<br/>serves media by signed URL"]:::fileCls
+        S3 --> CMP --> S3
+        S3 --> CDN
+    end
+
+    %% ---------- send path ----------
+    Sender -->|"WS frame: send msg to conversation_id"| GW
+    GW -->|"POST message"| WSVC
+    WSVC -->|"1 persist msg + seq_no"| MSTORE
+    WSVC -->|"2 look up members"| GRP
+    WSVC -->|"3 publish to recipients' gateways"| MQ
+
+    %% ---------- deliver path ----------
+    MQ -->|"online → deliver to owning gateway"| GW
+    GW -->|"push WS frame"| Recv
+    Recv -.->|"delivered / read ack → advance cursor"| CURSOR
+    MQ -->|"offline → notify"| PUSH
+    PUSH -.->|"wake device"| Recv
+
+    %% ---------- reconnect / last-mile recovery ----------
+    Recv -->|"reconnect: sync since last cursor"| GW
+    GW --> RSVC
+    RSVC -->|"read gap by seq_no"| MSTORE
+    RSVC -->|"read cursor"| CURSOR
+
+    %% ---------- file path ----------
+    Sender -->|"request upload"| GW
+    GW --> FSVC
+    FSVC -->|"signed URL"| Sender
+    Sender -->|"upload bytes directly"| S3
+    Recv -->|"download media"| CDN
