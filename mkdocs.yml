@@ -90,6 +90,7 @@ not_in_nav: |
   practice/07-session/script.md
   practice/08-session/script.md
   practice/09-session/script.md
+  practice/10-session/script.md
 
 nav:
   - Home: index.md
@@ -159,3 +160,4 @@ nav:
       - "Session 07 — Distributed Rate Limiter": practice/07-session/README.md
       - "Session 08 — Real-Time Chat App": practice/08-session/README.md
       - "Session 09 — Real-Time Chat App (Re-solve)": practice/09-session/README.md
+      - "Session 10 — High-Frequency Stock Trading System": practice/10-session/README.md

@@ -1,0 +1,44 @@
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    classDef clientCls fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+    classDef edgeCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef coreCls fill:#ffebee,stroke:#c62828,color:#b71c1c;
+    classDef spineCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef storeCls fill:#fff8e1,stroke:#f9a825,color:#795548;
+    classDef readCls fill:#e0f7fa,stroke:#00838f,color:#006064;
+
+    Trader([Trader - places orders]):::clientCls
+    GW["Order gateway<br/>authenticate, risk and balance check,<br/>reserve funds from wallet - NO external payment on hot path"]:::edgeCls
+    WALLET[("Wallet / balances<br/>available and reserved<br/>pre-funded, topped up off-path")]:::storeCls
+    SEQ["Sequencer<br/>assign global monotonic seq,<br/>append to replicated input journal BEFORE matching"]:::spineCls
+    JOURNAL[("Input journal - append-only log<br/>durability + deterministic replay<br/>replicated x3, feeds hot-standby")]:::spineCls
+
+    ME["Matching engine - THE CORE<br/>in-memory limit order book PER SYMBOL<br/>price-time priority, single writer per symbol<br/>sharded by symbol - microsecond match, NO I/O on hot path"]:::coreCls
+    STBY["Hot-standby engine<br/>replays same journal, ready to take over"]:::coreCls
+
+    MD["Market-data publisher<br/>fan-out executions + book deltas via push"]:::readCls
+    EDGE["Edge fan-out tier<br/>WebSocket / SSE, internal multicast + edge cache<br/>absorbs 100M reads/sec"]:::readCls
+    ReadC([Read clients - live price feed]):::clientCls
+
+    SETTLE["Clearing / settlement service<br/>async, OFF the match path<br/>move cash + securities, credit seller"]:::edgeCls
+    KAFKA["Kafka - post-trade events<br/>retry + DLQ + wallet-credit fallback"]:::spineCls
+    TRADEDB[("Trade log - immutable<br/>executions for compliance + history")]:::storeCls
+    PORT[("Portfolio / positions<br/>user_id, symbol, qty, avg_price")]:::storeCls
+    PROFILE[("Stock profile + read replica + cache<br/>slow-changing reference data")]:::readCls
+
+    Trader -->|"1 place order"| GW
+    GW -->|"2 reserve balance"| WALLET
+    GW -->|"3 validated order"| SEQ
+    SEQ -->|"4 append then sequence"| JOURNAL
+    SEQ -->|"5 feed sequenced stream"| ME
+    JOURNAL -.->|"replay on recovery"| ME
+    JOURNAL -.->|"same stream"| STBY
+    ME -->|"6 execution + book delta"| MD
+    ME -->|"7 emit post-trade event"| KAFKA
+    MD --> EDGE
+    EDGE -->|"push live prices"| ReadC
+    KAFKA -->|"8a clear + pay seller"| SETTLE
+    KAFKA -->|"8b update holdings"| PORT
+    KAFKA -->|"8c append execution"| TRADEDB
+    SETTLE -->|"credit / debit"| WALLET
+    ReadC -->|"read stock profile"| PROFILE
