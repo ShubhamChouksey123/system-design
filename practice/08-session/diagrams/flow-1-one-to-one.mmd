@@ -1,0 +1,38 @@
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    classDef clientCls fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+    classDef gwCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef svcCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef storeCls fill:#fff8e1,stroke:#f9a825,color:#795548;
+    classDef busCls fill:#fce4ec,stroke:#c2185b,color:#880e4f;
+    classDef pushCls fill:#ffebee,stroke:#c62828,color:#b71c1c;
+
+    Alice([Alice - sender]):::clientCls
+    GWA["Gateway-A<br/>holds Alice's socket"]:::gwCls
+    SVC["Send / Message service<br/>assigns message_id + seq_no"]:::svcCls
+    MSTORE[("Message store<br/>shard = conversation alice-bob")]:::storeCls
+    KAFKA{{"Kafka topic: messages<br/>durable event backbone"}}:::busCls
+
+    WORKER["Delivery worker<br/>Kafka consumer"]:::svcCls
+    REG[("Presence registry<br/>user_id → gateway_id")]:::storeCls
+    GWB["Gateway-B<br/>holds Bob's socket"]:::gwCls
+    Bob([Bob - recipient]):::clientCls
+    CUR[("Sync cursor<br/>last_delivered_seq")]:::storeCls
+    PUSH["Push service<br/>APNs / FCM"]:::pushCls
+
+    FANOUT["Other consumers<br/>unread counts · search index · analytics"]:::svcCls
+
+    Alice -->|"1 WS frame: send to alice-bob"| GWA
+    GWA --> SVC
+    SVC -->|"2 persist BEFORE ack"| MSTORE
+    SVC -.->|"3 ack: sent ✓"| Alice
+    SVC -->|"4 produce event"| KAFKA
+    KAFKA -->|"5 consume"| WORKER
+    KAFKA -.->|"same event, many readers"| FANOUT
+    WORKER -->|"6 where is Bob?"| REG
+    REG -->|"→ Gateway-B"| WORKER
+    WORKER -->|"7 forward to Bob's owning gateway"| GWB
+    GWB -->|"8 push WS frame"| Bob
+    Bob -.->|"9 delivered / read ack"| CUR
+    WORKER -.->|"if Bob offline → notify"| PUSH
+    PUSH -.->|"wake device"| Bob

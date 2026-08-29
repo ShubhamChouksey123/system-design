@@ -12,17 +12,17 @@ flowchart LR
 
     subgraph EDGE[Connection tier - stateful, one persistent WebSocket per online device]
         direction TB
-        GW["WebSocket Gateway servers<br/>terminate WS + authenticate<br/>horizontally scaled"]:::edgeCls
-        REG[("Presence / session registry<br/>Redis: user_id → gateway_id<br/>heartbeat TTL, online status")]:::storeCls
+        GW["API Gateway - WebSocket<br/>terminate WS + authenticate<br/>horizontally scaled, connection draining on drain"]:::edgeCls
+        REG[("Session store<br/>Redis: user_id → gateway_id<br/>heartbeat TTL")]:::storeCls
+        ACT[("User activity store<br/>Redis: user_id → last_active_at<br/>online / last-seen derived from TTL")]:::storeCls
         GW <-->|"register on connect<br/>expire on disconnect"| REG
     end
 
     subgraph CORE[Message-handling services - stateless]
         direction TB
-        WSVC["Send / Message service<br/>assigns message_id + per-conversation seq_no<br/>persist-then-ack, then emit event"]:::svcCls
-        WORKER["Delivery worker<br/>Kafka consumer: expand members,<br/>presence lookup, route to owning gateways"]:::svcCls
-        RSVC["Sync service<br/>pull missed messages since cursor<br/>on reconnect / app open"]:::svcCls
-        HSVC["History / read service<br/>paginated range scan by seq_no<br/>read-only, replica-backed"]:::svcCls
+        WSVC["Message Writer service<br/>assigns message_id + per-conversation seq_no<br/>persist-then-ack, then emit event"]:::svcCls
+        WORKER["Delivery worker<br/>Kafka consumer: expand members,<br/>batch presence lookup, route to owning gateways"]:::svcCls
+        RSVC["Message Read service<br/>history scroll-back + reconnect sync<br/>read-only, cache in front of replica"]:::svcCls
         FSVC["File / media service<br/>mints file_id, signed URLs, resolves renditions"]:::fileCls
     end
 
@@ -31,22 +31,24 @@ flowchart LR
         KAFKA{{"Kafka topic: messages<br/>durable event backbone"}}:::busCls
         FANOUT["Other consumers<br/>unread counts · search index · analytics"]:::svcCls
         MQ{{"Per-gateway topics / pub-sub<br/>route message → owning gateway"}}:::busCls
-        PUSH["Push service<br/>APNs / FCM for offline recipients"]:::svcCls
+        PUSH["Push service<br/>AWS SNS / Google FCM for offline recipients"]:::svcCls
     end
 
     subgraph DATA[Durable stores]
         direction TB
-        MSTORE[("Message store - NoSQL<br/>sharded by conversation_id<br/>all msgs of a chat co-located, ordered by seq_no")]:::storeCls
-        CURSOR[("Per-recipient sync cursor<br/>last_delivered_seq per user, per conversation")]:::storeCls
-        GRP[("Group / conversation store<br/>members, metadata")]:::storeCls
+        MSTORE[("Message store - NoSQL<br/>sharded by conversation_id<br/>one row per message, seq_no order, nullable file_id")]:::storeCls
+        REPLICA[("Message store read replica<br/>serves history reads")]:::storeCls
+        CURSOR[("Per-recipient sync cursor<br/>last_delivered_seq / last_read_seq per user, per conversation")]:::storeCls
+        GRP[("Group / conversation store<br/>members, metadata - cached")]:::storeCls
+        MSTORE -->|"replication"| REPLICA
     end
 
     subgraph FILES[Media path]
         direction TB
         S3[("Object store - S3<br/>original + compressed + thumb per file_id<br/>hot; tier to Glacier when cold")]:::fileCls
-        CMP["Compression pipeline<br/>Kafka → transcode / compress"]:::fileCls
+        CMP["Compression / transcode pipeline<br/>Kafka → write renditions"]:::fileCls
         CDN["CDN<br/>serves media by signed URL"]:::fileCls
-        S3 -->|"F4 transcode"| CMP
+        S3 -->|"F4 transcode event"| CMP
         CMP -->|"write renditions"| S3
     end
 
@@ -56,10 +58,12 @@ flowchart LR
     WSVC -->|"3 persist msg + seq_no BEFORE ack"| MSTORE
     WSVC -.->|"4 ack: sent"| Sender
     WSVC -->|"5 produce ONE event"| KAFKA
+    WSVC -.->|"update last_active_at"| ACT
     KAFKA -->|"6 consume"| WORKER
     KAFKA -.->|"same event, many readers"| FANOUT
     WORKER -->|"7 expand members - group only"| GRP
     WORKER -->|"8 where is each recipient?"| REG
+    WORKER -.->|"update last_active_at"| ACT
     WORKER -->|"9 publish to owning gateways"| MQ
     MQ -->|"10 online → deliver"| GW
     GW -->|"11 push WS frame"| Recv
@@ -67,16 +71,11 @@ flowchart LR
     PUSH -.->|"wake device"| Recv
     Recv -.->|"12 delivered / read ack → advance cursor"| CURSOR
 
-    %% ---------- reconnect / last-mile recovery ----------
-    Recv -->|"R1 reconnect: sync since cursor"| GW
+    %% ---------- reconnect + history read (scroll back) ----------
+    Recv -->|"R1 reconnect / scroll: load since seq_no"| GW
     GW --> RSVC
-    RSVC -->|"R2 read gap by seq_no"| MSTORE
+    RSVC -->|"R2 read gap / page by seq_no"| REPLICA
     RSVC -->|"R2 read cursor"| CURSOR
-
-    %% ---------- history read (scroll back) ----------
-    Recv -->|"H1 scroll back: load older page"| GW
-    GW --> HSVC
-    HSVC -->|"H2 keyset page: seq_no older than cursor, LIMIT n"| MSTORE
 
     %% ---------- file path ----------
     Sender -->|"F1 request upload"| GW

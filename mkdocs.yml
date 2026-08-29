@@ -89,6 +89,7 @@ not_in_nav: |
   practice/06-session/script.md
   practice/07-session/script.md
   practice/08-session/script.md
+  practice/09-session/script.md
 
 nav:
   - Home: index.md
@@ -157,3 +158,4 @@ nav:
       - "Session 06 — Social Networking MVP": practice/06-session/README.md
       - "Session 07 — Distributed Rate Limiter": practice/07-session/README.md
       - "Session 08 — Real-Time Chat App": practice/08-session/README.md
+      - "Session 09 — Real-Time Chat App (Re-solve)": practice/09-session/README.md

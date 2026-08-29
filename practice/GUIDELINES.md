@@ -81,7 +81,8 @@ Reuse the same figures so numbers stay consistent across the repo:
 
 Session diagrams live in `NN-session/diagrams/`, and the **source is committed beside a same-named `.png`**.
 
-- **Ideal-design diagram → Mermaid** (`.mmd`). Author the `.mmd`, then render at **3× scale** so it stays crisp: `npx -y @mermaid-js/mermaid-cli@11 -i name.mmd -o name.png -b white -s 3` (run with the sandbox disabled — the renderer needs network). Embed the PNG: `![plain alt text](./diagrams/name.png)`.
+- **Ideal-design diagram → Mermaid** (`.mmd`). Author the `.mmd`, then render at high scale so text stays sharp when zoomed: `npx -y @mermaid-js/mermaid-cli@11 -i name.mmd -o name.png -b white -s 5` (run with the sandbox disabled — the renderer needs network). Embed the PNG: `![plain alt text](./diagrams/name.png)`.
+  - **Scale by density:** `-s 5` is the baseline. For a **wide or dense** diagram (many nodes, overlaid flows — e.g. a combined all-flows overview), use **`-s 6`** or higher; a small focused diagram (a handful of boxes) is fine at `-s 3`. Aim for a longest edge of **~4000+ px** so the text survives zooming — check the output with `file name.png` and bump the scale if it's smaller.
 - **Requirements / as-drawn snapshots** may be the images captured from the mock canvas (e.g. `requirements.png`, `architecture.png`) — embed them as-is to show what actually happened.
 - **Alt text must be plain** — no parentheses or brackets (they break Markdown image rendering); write a full descriptive sentence instead.
 - Separate **read vs write flows**, color per journey, and **wire every box** — an unconnected component reads as "named but not understood."
@@ -113,7 +114,7 @@ Block elements need a **blank line before and after**, or GitHub/MkDocs treat th
 □ Every lost-point row has a concrete fix + a Study cross-link into concepts/
 □ Ideal Design section is self-contained and has ALL of §4:
     framing · ideal estimation · functional + non-functional reqs · Mermaid diagram · schema · trade-offs
-□ Ideal-design diagram is Mermaid (.mmd) rendered to a same-named .png at 3× (§7)
+□ Ideal-design diagram is Mermaid (.mmd) rendered to a same-named .png at ≥5× — ≥6× if wide/dense, ~4000+ px longest edge (§7)
 □ Every number ties to a decision (§6)
 □ Diagram alt text is plain (no parentheses/brackets); every box is wired
 □ AWS products prefixed with "AWS"

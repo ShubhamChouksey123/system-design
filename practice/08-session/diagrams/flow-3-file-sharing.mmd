@@ -1,0 +1,30 @@
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    classDef clientCls fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+    classDef svcCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef fileCls fill:#f1f8e9,stroke:#9e9d24,color:#827717;
+    classDef spineCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+
+    classDef storeCls fill:#fff8e1,stroke:#f9a825,color:#795548;
+
+    Alice([Alice - sender]):::clientCls
+    FSVC["File / media service<br/>mints file_id, issues signed URLs, resolves renditions<br/>owns file_id → renditions only - NO chat metadata"]:::fileCls
+    S3[("Object store - S3<br/>bytes only: original + compressed + thumb per file_id<br/>tier cold files to Glacier")]:::fileCls
+    CMP["Compression pipeline<br/>Kafka to transcode, write deterministic keys"]:::fileCls
+    SVC["Send / Message service<br/>then the normal 1:1 or group spine<br/>persist to ack to route to deliver"]:::spineCls
+    MSTORE[("Message store<br/>the association lives here, not in S3:<br/>message row = sender_id, conversation_id, seq_no, file_id")]:::storeCls
+    Recv([Recipient]):::clientCls
+    CDN["CDN<br/>serves cached media by signed URL"]:::fileCls
+
+    Alice -->|"1 request upload"| FSVC
+    FSVC -->|"2 return file_id + signed PUT URL for original"| Alice
+    Alice -->|"3 upload original bytes directly"| S3
+    S3 -->|"4 upload event"| CMP
+    CMP -->|"write compressed + thumb under same file_id"| S3
+    Alice -->|"5 send chat message: type file, file_id - NOT a URL"| SVC
+    SVC -->|"5a persist message row - carries the association"| MSTORE
+    SVC -->|"6 deliver the file_id, not the bytes"| Recv
+    Recv -->|"7 open media: resolve file_id"| FSVC
+    FSVC -->|"8 pick best rendition, return fresh signed CDN URL"| Recv
+    Recv -->|"9 download by signed URL"| CDN
+    CDN -->|"cached from S3"| Recv
