@@ -16,6 +16,23 @@
 
 A trading system looks like a buy/sell-CRUD problem and is actually an **in-memory, single-writer, deterministic-matching** problem. The defining component is the **order matching engine**: a **limit order book per symbol** where incoming orders match against resting orders by **price-time priority** in microseconds, with **no I/O on the hot path**. Two questions decide the design: **(1) how do you match orders correctly and fast** — one serialized writer per symbol against an in-memory book, made durable by a **sequenced, replicated input journal + deterministic replay** — and **(2) how do millions of readers see live prices** — a 100M-reads/sec **push/fan-out** tier fed by executions, decoupled from the match path. The candidate reached neither crux directly, which is what capped the score.
 
+## Terminology
+
+The domain vocabulary this write-up uses — worth saying out loud in the room, since using the right words signals familiarity with the problem space.
+
+| Term | Meaning |
+|---|---|
+| **Symbol** | A single tradable stock, identified by its ticker (e.g. `AAPL`, `GOOGL`). "Per symbol" = "per stock"; an exchange lists ~5,000 symbols. Used interchangeably with *stock* / `stock_id` here. |
+| **Order** | A request to buy or sell a quantity of a symbol. Two kinds below (market / limit). |
+| **Market order** | Buy/sell **immediately at the best available price** — prioritizes speed of execution over price. |
+| **Limit order** | Buy/sell **only at a specified price or better** — prioritizes price over immediacy; rests on the book until matched. |
+| **Order book** | The set of unmatched (resting) buy + sell orders for one symbol, kept **in memory**, sorted by price then time. **Bids** = buy side, **asks** = sell side. |
+| **Price-time priority** | The matching rule: best price wins; among equal prices, the **earliest** order wins (first-come-first-serve). |
+| **Resting order** | An order sitting on the book waiting to be matched (as opposed to an incoming order being matched right now). |
+| **Matching / execution** | Pairing an incoming order with a resting order on the opposite side; a filled pair is an **execution** (a trade). |
+| **Matching engine** | The component that holds the books and runs the matching loop — **the heart of the system**. |
+| **Settlement / clearing** | The **post-trade** step that actually moves cash and securities between the two parties — happens *after*, and off, the match path. |
+
 ## Requirements & estimation
 
 - **Functional** — **view a stock profile** (current/previous value, daily/monthly/yearly change, company info, quarterly/annual financials); **place a trade** as a **market order** or **limit order**; **view portfolio** (holdings, current value, past orders). A reasonable cut, though **real-time price feeds** and the **matching engine** itself were never named as requirements.
@@ -99,9 +116,43 @@ Despite the score, several answers were genuinely senior and are **transferable 
 
 ### 3. Ideal architecture
 
-The **order gateway** validates and **reserves funds from a wallet** (no external payment on the hot path); a **sequencer** assigns a global monotonic sequence and **appends to a replicated input journal *before* matching**; the **matching engine** runs an **in-memory limit order book per symbol** with **one writer per symbol** and emits executions with **zero I/O on the hot path**; a **hot-standby** replays the same journal, ready to take over. Executions fan **two ways**: to a **market-data publisher → edge fan-out tier** that absorbs 100M reads/sec via push, and to **Kafka** for **async post-trade** work (clearing/settlement, portfolio, immutable trade log) — all *off* the match path. Edges are numbered along the order spine (1–7) and the post-trade fan-out (8a–8c).
+The design splits into **three independent flows** that meet only at the matching engine: a **write/match path** (order in → matched), a **read/price-feed path** (executions → millions of screens), and a **post-trade path** (executions → money + records settle). The whole point of the architecture is to keep the first path in RAM and microsecond-fast by pushing *everything slow* — external payment, DB writes, fan-out — onto the other two, which run **asynchronously off the match path**. Edges are numbered along the order spine (1–7) and the post-trade fan-out (8a–8c).
 
 ![Ideal high-frequency trading system as a Mermaid flowchart with numbered steps. A trader places orders into an order gateway that authenticates, runs a risk and balance check, and reserves funds from a wallet with no external payment on the hot path, reading available and reserved balances from a wallet and balances store that is pre-funded and topped up off path. Step 1 place order reaches the gateway, step 2 reserve balance hits the wallet, step 3 the validated order goes to a sequencer that assigns a global monotonic sequence number and appends to a replicated input journal before matching, step 4 append then sequence writes to an append-only input journal that provides durability and deterministic replay and is replicated three times and feeds a hot standby, step 5 the sequencer feeds the sequenced stream to the matching engine which is the core, holding an in-memory limit order book per symbol with price-time priority and a single writer per symbol, sharded by symbol, performing microsecond matches with no I O on the hot path. The journal also replays into the engine on recovery and feeds the same stream to a hot-standby engine ready to take over. Step 6 the engine emits execution and book delta events to a market-data publisher that fans out executions and book deltas by push to an edge fan-out tier using WebSocket or SSE with internal multicast and edge cache that absorbs 100 million reads per second and pushes live prices to read clients, who also read slow-changing stock profile reference data from a profile store with read replica and cache. Step 7 the engine emits a post-trade event to Kafka which carries retry, dead letter queue, and wallet-credit fallback. From Kafka, step 8a clear and pay seller goes to a clearing and settlement service that runs asynchronously off the match path to move cash and securities and credit the seller and then credits or debits the wallet, step 8b update holdings goes to a portfolio and positions store keyed by user id symbol quantity and average price, and step 8c append execution goes to an immutable trade log store holding executions for compliance and history.](./diagrams/ideal-design.png)
+
+#### Flow A — the write / match path (steps 1–5): *"an order comes in and gets matched"*
+
+This is the **hot path** — the one measured in microseconds. Everything here is designed to avoid touching a disk, a lock, or a network call while a match is in flight.
+
+1. **① Place order** — a trader submits a buy/sell order (market or limit) to the **order gateway**, which authenticates and runs a risk/balance check.
+2. **② Reserve balance** — the gateway **reserves funds from the trader's pre-funded wallet** (moves `available → reserved`). This is a *fast local check*, **not** an external payment call — that's the fix for the room's biggest flaw. If the wallet lacks funds, the order is rejected here, before it ever reaches the engine.
+3. **③ Validated order → sequencer** — the accepted order flows to the **sequencer**, which assigns a **global monotonic sequence number** so every engine (primary + standby) processes inputs in the *exact same order*.
+4. **④ Append *then* sequence** — the sequencer **appends the order to the replicated input journal *before* matching**. This ordering is the durability trick: the durable record is written first, so a crash at any later point loses nothing — the order can always be replayed. The journal is replicated ×3 and feeds the hot-standby.
+5. **⑤ Feed the sequenced stream → matching engine** — the engine consumes the ordered stream and matches against the **in-memory order book for that symbol**, using **one writer thread per symbol** (so no locks, no races) and **price-time priority**. A match produces one or more **executions**; any unfilled remainder rests on the book. This is the [§4 crux loop](#4-the-crux--the-order-matching-engine) — microseconds, zero I/O.
+
+> **Why this order matters:** reserve → journal → match means the two slow-or-risky things (funds, durability) are both settled *before* the fast in-memory step, and the fast step never blocks on either.
+
+#### Flow B — the read / price-feed path (step 6): *"millions of people watch the price move"*
+
+Executions are **outputs** of the engine, not part of the match. This path carries the **100M reads/sec** and is deliberately a *separate system* so read load can never slow matching.
+
+6. **⑥ Execution + book delta → market-data publisher → edge fan-out tier.** Each execution and order-book change is **pushed** (not polled) to a **market-data publisher**, which fans out to an **edge tier** (WebSocket/SSE + internal multicast + edge cache) that **absorbs the 100M reads/sec** and pushes live prices down to every subscribed client. Slow-changing **stock-profile** reference data (company info, financials) is served separately from a **read replica + cache** — the one place replicas actually fit, because it barely changes.
+
+> **Why push, not pull:** a value that changes on *every* trade can't be served by read replicas at 100M reads/sec — the replicas would melt on write amplification. You publish deltas once and let the edge tier fan them out. This is the second crux the room never raised.
+
+#### Flow C — the post-trade path (steps 7–8c): *"money and records settle, eventually"*
+
+Once a trade is matched, the *bookkeeping* — paying the seller, updating holdings, writing the audit log — is **asynchronous** and rides Kafka. None of it is on the latency path, and all of it can retry safely.
+
+7. **⑦ Emit post-trade event → Kafka.** The engine emits one durable event per execution to **Kafka**, then forgets about it. Kafka carries **retry + DLQ + wallet-credit fallback** for anything downstream that fails.
+8. Three independent consumers each do one job:
+   - **⑧a Clear & pay seller → clearing/settlement service** — moves cash + securities between parties and credits the seller's wallet. Runs **off the match path**, so a slow settlement never delays a trade; a failed payout retries via Kafka → DLQ → wallet-credit (the candidate's answer, kept).
+   - **⑧b Update holdings → portfolio/positions store** — updates `user_id, symbol, qty, avg_price` so the buyer's portfolio reflects the new shares.
+   - **⑧c Append execution → immutable trade log** — writes the execution to an append-only log for **compliance + history**.
+
+> **Why async:** settlement and record-keeping must be *correct and durable*, but not *instant*. Decoupling them via Kafka means the hot path stays fast, and each consumer can fail, retry, and recover independently without touching the engine.
+
+**Resilience overlay (not a request flow):** the **input journal also replays into the engine on recovery**, and continuously feeds a **hot-standby engine** that mirrors the primary and takes over on failure — covered in [§5](#5-resilience--failover).
 
 | Layer | Component | Store / note |
 |---|---|---|
