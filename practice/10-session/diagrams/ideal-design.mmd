@@ -8,37 +8,37 @@ flowchart LR
     classDef readCls fill:#e0f7fa,stroke:#00838f,color:#006064;
 
     Trader([Trader - places orders]):::clientCls
-    GW["Order gateway<br/>authenticate, risk and balance check,<br/>reserve funds from wallet - NO external payment on hot path"]:::edgeCls
-    WALLET[("Wallet / balances<br/>available and reserved<br/>pre-funded, topped up off-path")]:::storeCls
-    SEQ["Sequencer<br/>assign global monotonic seq,<br/>append to replicated input journal BEFORE matching"]:::spineCls
-    JOURNAL[("Input journal - append-only log<br/>durability + deterministic replay<br/>replicated x3, feeds hot-standby")]:::spineCls
+    GW["Order gateway<br/>check login, check balance,<br/>reserve funds from wallet - no slow payment on the fast path"]:::edgeCls
+    WALLET[("Wallet / balances<br/>available + reserved money<br/>pre-loaded, topped up separately")]:::storeCls
+    SEQ["Sequencer<br/>stamp an ever-increasing number,<br/>write to the log BEFORE matching"]:::spineCls
+    JOURNAL[("Input log - write-once<br/>the durable record; replay rebuilds the books<br/>copied x3, feeds the standby")]:::spineCls
 
-    ME["Matching engine - THE CORE<br/>in-memory limit order book PER SYMBOL<br/>price-time priority, single writer per symbol<br/>sharded by symbol - microsecond match, NO I/O on hot path"]:::coreCls
-    STBY["Hot-standby engine<br/>replays same journal, ready to take over"]:::coreCls
+    ME["Matching engine - THE CORE<br/>in-memory order book per stock<br/>best price first, then oldest first<br/>one thread per stock, stocks spread across machines<br/>matches in microseconds, no disk or network on the fast path"]:::coreCls
+    STBY["Standby engine<br/>replays the same log, ready to take over"]:::coreCls
 
-    MD["Market-data publisher<br/>fan-out executions + book deltas via push"]:::readCls
-    EDGE["Edge fan-out tier<br/>WebSocket / SSE, internal multicast + edge cache<br/>absorbs 100M reads/sec"]:::readCls
-    ReadC([Read clients - live price feed]):::clientCls
+    MD["Price publisher<br/>pushes out trades + book changes"]:::readCls
+    EDGE["Fan-out layer<br/>WebSocket / SSE + edge cache<br/>absorbs 100M reads/sec"]:::readCls
+    ReadC([Viewers - live price feed]):::clientCls
 
-    SETTLE["Clearing / settlement service<br/>async, OFF the match path<br/>move cash + securities, credit seller"]:::edgeCls
-    KAFKA["Kafka - post-trade events<br/>retry + DLQ + wallet-credit fallback"]:::spineCls
-    TRADEDB[("Trade log - immutable<br/>executions for compliance + history")]:::storeCls
+    SETTLE["Clearing / settlement<br/>runs in the background, off the fast path<br/>move cash + shares, pay the seller"]:::edgeCls
+    KAFKA["Kafka - after-trade events<br/>retry + dead-letter queue + wallet-credit fallback"]:::spineCls
+    TRADEDB[("Trade log - write-once<br/>trades for compliance + history")]:::storeCls
     PORT[("Portfolio / positions<br/>user_id, symbol, qty, avg_price")]:::storeCls
-    PROFILE[("Stock profile + read replica + cache<br/>slow-changing reference data")]:::readCls
+    PROFILE[("Stock profile + read replica + cache<br/>slow-changing company data")]:::readCls
 
     Trader -->|"1 place order"| GW
     GW -->|"2 reserve balance"| WALLET
     GW -->|"3 validated order"| SEQ
-    SEQ -->|"4 append then sequence"| JOURNAL
-    SEQ -->|"5 feed sequenced stream"| ME
+    SEQ -->|"4 write to log first"| JOURNAL
+    SEQ -->|"5 feed the ordered stream"| ME
     JOURNAL -.->|"replay on recovery"| ME
     JOURNAL -.->|"same stream"| STBY
-    ME -->|"6 execution + book delta"| MD
-    ME -->|"7 emit post-trade event"| KAFKA
+    ME -->|"6 trade + book change"| MD
+    ME -->|"7 send after-trade event"| KAFKA
     MD --> EDGE
     EDGE -->|"push live prices"| ReadC
-    KAFKA -->|"8a clear + pay seller"| SETTLE
+    KAFKA -->|"8a settle + pay seller"| SETTLE
     KAFKA -->|"8b update holdings"| PORT
-    KAFKA -->|"8c append execution"| TRADEDB
+    KAFKA -->|"8c record the trade"| TRADEDB
     SETTLE -->|"credit / debit"| WALLET
     ReadC -->|"read stock profile"| PROFILE
