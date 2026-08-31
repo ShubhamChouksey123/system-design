@@ -6,6 +6,7 @@ flowchart LR
     classDef spineCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
     classDef storeCls fill:#fff8e1,stroke:#f9a825,color:#795548;
     classDef readCls fill:#e0f7fa,stroke:#00838f,color:#006064;
+    classDef bufCls fill:#eceff1,stroke:#546e7a,color:#263238;
 
     Trader([Trader - places orders]):::clientCls
     GW["Order gateway<br/>check login, check balance,<br/>reserve funds from wallet - no slow payment on the fast path<br/>route order by stock_id - consistent hashing or shard map"]:::edgeCls
@@ -15,6 +16,10 @@ flowchart LR
 
     ME["Matching engine - THE CORE<br/>in-memory order book per stock<br/>best price first, then oldest first<br/>one thread per stock, stocks spread across machines<br/>matches in microseconds, no disk or network on the fast path<br/>emits results fire-and-forget, holds no client connections"]:::coreCls
     STBY["Standby engine<br/>replays the same log, ready to take over"]:::coreCls
+
+    RB1["Price ring buffer<br/>lock-free, single-writer<br/>drop / conflate on overflow"]:::bufCls
+    RB2["Trade ring buffer<br/>SEPARATE buffer - the slow Kafka path<br/>can never gate the fast price path"]:::bufCls
+    TP["Trade publisher<br/>reads by cursor, produces to Kafka<br/>acks=all + retry + DLQ, all off the hot path"]:::readCls
 
     MD["Price publisher<br/>normalize + conflate, stamp per-symbol seq<br/>publish once, and write the latest snapshot"]:::readCls
     BUS["Internal multicast bus - Aeron / UDP<br/>one send reaches every edge node - 1 to thousands"]:::readCls
@@ -34,8 +39,11 @@ flowchart LR
     SEQ -->|"4 stamp seq, append to the log"| JOURNAL
     JOURNAL -->|"5 engine reads the stream by cursor<br/>same read replays on recovery"| ME
     JOURNAL -->|"5 standby reads the same stream<br/>by its own cursor"| STBY
-    ME -->|"6 emit execution + book delta, fire-and-forget"| MD
-    ME -->|"7 send after-trade event"| KAFKA
+    ME -->|"6 write execution + book delta<br/>fire-and-forget"| RB1
+    RB1 -->|"price publisher reads by cursor"| MD
+    ME -->|"7 write after-trade event"| RB2
+    RB2 -->|"trade publisher reads by cursor"| TP
+    TP -->|"produce, acks=all + retry"| KAFKA
     MD -->|"6a write snapshot"| CACHE
     MD -->|"6b publish once"| BUS
     BUS -->|"multicast to edge nodes"| EDGE
