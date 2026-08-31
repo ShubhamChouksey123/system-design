@@ -123,7 +123,7 @@ Despite the score, several answers were genuinely senior and are **strengths I c
 
 The system breaks into **three separate flows** that only meet at the matching engine: a **write/match flow** (order comes in → gets matched), a **read/price flow** (trades → millions of screens), and an **after-trade flow** (trades → money and records settle). The whole trick is to keep the first flow in memory and microsecond-fast by moving *everything slow* — outside payments, database writes, fan-out — onto the other two, which run **in the background, off the fast path**. Steps are numbered along the order path (1–7) and the after-trade fan-out (8a–8c).
 
-![Ideal high-frequency trading system as a Mermaid flowchart with numbered steps. A trader places orders into an order gateway that checks login and balance and reserves funds from a wallet with no slow payment on the fast path, reading available and reserved money from a wallet and balances store that is pre-loaded and topped up separately. Step 1 place order reaches the gateway, step 2 reserve balance hits the wallet, step 3 the validated order goes to a sequencer that stamps an ever-increasing number and writes to the log before matching, step 4 write to log first writes to a write-once input log that is the durable record whose replay rebuilds the books, is copied three times, and feeds the standby, step 5 the sequencer feeds the ordered stream to the matching engine which is the core, holding an in-memory order book per stock with best price first then oldest first, one thread per stock, stocks spread across machines, matching in microseconds with no disk or network on the fast path. The log also replays into the engine on recovery and feeds the same stream to a standby engine ready to take over. Step 6 the engine sends trade and book change events to a price publisher that pushes out trades and book changes to a fan-out layer using WebSocket or SSE with an edge cache that absorbs 100 million reads per second and pushes live prices to viewers, who also read slow-changing stock profile company data from a profile store with read replica and cache. Step 7 the engine sends an after-trade event to Kafka which carries retry, dead-letter queue, and wallet-credit fallback. From Kafka, step 8a settle and pay seller goes to a clearing and settlement service that runs in the background off the fast path to move cash and shares and pay the seller and then credits or debits the wallet, step 8b update holdings goes to a portfolio and positions store keyed by user id symbol quantity and average price, and step 8c record the trade goes to a write-once trade log store holding trades for compliance and history.](./diagrams/ideal-design.png)
+![Ideal high-frequency trading system as a Mermaid flowchart with numbered steps. A trader places orders into an order gateway that checks login and balance, reserves funds from a wallet with no slow payment on the fast path, and routes each order by stock id using consistent hashing or a shard map, reading available and reserved money from a wallet and balances store that is pre-loaded and topped up separately. Step 1 place order reaches the gateway, step 2 reserve balance hits the wallet, step 3 the validated order is routed by stock id to a sequencer that is the one active writer per partition, stamps an ever-increasing number, and writes to the log before matching, step 4 write to log first writes to a write-once input log that is the durable record whose replay rebuilds the books, is copied three times, and feeds the standby, step 5 the matching engine reads the ordered stream from the log by advancing its own cursor rather than being pushed, and matches against its in-memory order book per stock with best price first then oldest first, one thread per stock, stocks spread across machines, matching in microseconds with no disk or network on the fast path. The standby engine reads the same log by its own cursor to stay in lockstep, and recovery is the same read replayed. Step 6 the engine emits execution and book delta events fire-and-forget to a price publisher, which normalizes and conflates them, stamps a per-symbol sequence number, in step 6a writes the latest snapshot to an edge cache, and in step 6b publishes them once onto an internal multicast bus using Aeron or UDP where one send reaches every edge node in a one-to-thousands fan-out. The multicast bus reaches the edge fan-out tier which holds the client connections and in step 6c pushes deltas to viewers over WebSocket or SSE in a thousands-to-millions fan-out. In step 6d a viewer fetches the latest snapshot from the edge cache on connect and resyncs from it on a sequence gap, and also reads slow-changing stock profile company data from a profile store with read replica and cache. Step 7 the engine sends an after-trade event to Kafka which carries retry, dead-letter queue, and wallet-credit fallback. From Kafka, step 8a settle and pay seller goes to a clearing and settlement service that runs in the background off the fast path to move cash and shares and pay the seller and then credits or debits the wallet, step 8b update holdings goes to a portfolio and positions store keyed by user id symbol quantity and average price, and step 8c record the trade goes to a write-once trade log store holding trades for compliance and history.](./diagrams/ideal-design.png)
 
 #### Flow A — the write / match path (steps 1–5): *"an order comes in and gets matched"*
 
@@ -132,18 +132,24 @@ This is the **fast path**, measured in microseconds. Everything here is built to
 1. **① Place order** — a trader sends a buy/sell order (market or limit) to the **order gateway**, which checks their login and their risk/balance.
 2. **② Reserve balance** — the gateway **holds the needed money in the trader's pre-loaded wallet** (moves it from `available` to `reserved`). This is a *fast local check*, **not** an outside payment call — this is the fix for the biggest flaw in my interview design. If there isn't enough money, the order is rejected here, before it reaches the engine.
 3. **③ Validated order → sequencer** — the accepted order goes to the **sequencer**, which stamps it with an ever-increasing **sequence number**. This guarantees every engine copy (main and standby) processes orders in the *exact same order*.
-4. **④ Write to the log, then match** — the sequencer **writes the order to a replicated log before matching it**. This ordering is the durability trick: the durable record exists first, so a crash at any later step loses nothing — you can always replay. The log is copied ×3 and also feeds the standby engine.
-5. **⑤ Feed the ordered stream → matching engine** — the engine reads the ordered stream and matches against that **stock's in-memory book**, using **one thread per stock** (so nothing clashes) and **price-time priority**. A match produces one or more **trades**; anything left over waits on the book. This is the [§4 core loop](#4-the-crux--the-order-matching-engine) — microseconds, no disk or network.
+4. **④ Stamp seq, append to the log** — the sequencer stamps the order with its `seq` and **appends it to the replicated log before any matching happens**. This ordering is the durability trick: the durable record exists first, so a crash at any later step loses nothing — you can always replay. The sequencer's job **ends here** — it never talks to the engine directly. The log is copied ×3.
+5. **⑤ Engine reads the ordered stream from the log** — the engine doesn't get *pushed* orders; it **reads the log in `seq` order, advancing its own cursor** (an in-memory ring buffer on the hot path, so no network or lock). It matches each order against that **stock's in-memory book**, using **one thread per stock** (so nothing clashes) and **price-time priority**. A match produces one or more **trades**; anything left over waits on the book. The **standby reads the same log by its own cursor** — that's why it stays in lockstep — and **recovery is this exact same read** replayed from a snapshot. This is the [§4 core loop](#4-the-crux--the-order-matching-engine) — microseconds, no disk or network.
 
 > **Why this order matters:** reserve → log → match means the two slow-or-risky things (money and durability) are both settled *before* the fast in-memory step, so the fast step never has to wait on either.
 
+> **Routing & partitioning (steps ①→③):** the gateway routes each order by its **`stock_id`** — so **every order for one stock always reaches the same partition → the same sequencer → the same book**. That's what makes the single, ordered, single-writer stream per stock possible. Different stocks never match against each other, so a **global order across the whole exchange is never needed** — only a consistent order *within* each stock. Full reasoning in [§4](#4-the-crux--the-order-matching-engine).
+
 #### Flow B — the read / price path (step 6): *"millions of people watch the price move"*
 
-Trades are **outputs** of the engine, not part of matching. This flow carries the **100M reads/sec** and is deliberately a *separate system*, so read load can never slow down matching.
+Trades and book changes are **outputs** of the engine, not part of matching. This flow carries the **100M reads/sec** and is deliberately a *separate system*, so read load can never slow matching down. It's a **two-stage amplifier** — one event becomes thousands of edge deliveries, then millions of client pushes — and the engine stays completely unaware of it.
 
-6. **⑥ Trade + book change → price publisher → fan-out layer.** Every trade and book change is **pushed** (not polled) to a **price publisher**, which fans it out through an **edge layer** (WebSocket/SSE + edge caching) that **absorbs the 100M reads/sec** and pushes live prices down to every subscriber. Slow-changing **company profile** data is served separately from a **read replica + cache** — the one place replicas actually fit, because it barely changes.
+6. **⑥ Emit execution + book delta → price publisher (fire-and-forget).** The engine drops each trade and best-bid/ask change into an in-memory buffer and immediately goes back to matching — it holds **no client connections** and waits for no one. The **price publisher** then does three jobs *once, centrally*, so a million clients don't each repeat them: **normalize** to the public wire format; **conflate** (collapse a burst of ticks for one symbol to the latest — humans can't see 50 ticks/ms); and **stamp a per-symbol sequence number** so a client can detect a gap.
+   - **⑥a Write the latest snapshot → edge cache.** The newest price/book snapshot is cached at the edge so a *newly-connecting* client can bootstrap instantly, and pollers are absorbed here — they never reach the engine.
+   - **⑥b Publish once → internal multicast bus.** The publisher sends each update **one time** onto an **internal multicast bus (Aeron / UDP)**. Instead of looping and sending 1,000 copies, it sends once and the **network duplicates** the packet to every edge node at the same instant — a **1 → thousands** fan-out. (Full mechanism: [Low-Latency Messaging](../../concepts/07-messaging-and-events/low-latency-messaging.md).)
+   - **⑥c Push deltas → viewers (WebSocket / SSE).** Each **edge node** holds the actual long-lived client connections and pushes updates down them — a **thousands → millions** fan-out. The edge tier can crash and scale on its own without ever touching the engine.
+   - **⑥d Snapshot on connect, resync on gap.** A client fetches the current snapshot from the edge cache when it connects, then applies live deltas; if it ever sees a **sequence gap** (missed `#7`), it re-reads the snapshot and resyncs. Slow-changing **company profile** data is served separately from a **read replica + cache** — the one place replicas actually fit.
 
-> **Why push, not pull:** a number that changes on *every* trade can't be served to 100M readers/sec from read replicas — the replicas would collapse. Instead you publish each change once and let the edge layer spread it out. This is the second core idea I never raised.
+> **Why push, not pull — and why multicast:** a number that changes on *every* trade can't be served to 100M readers/sec from read replicas — they'd collapse. You publish each change **once** and let the network + edge tier spread it. Routing this *live* feed through Kafka would add broker latency and jitter (see [§8](#8-alternative-designs-considered)); the durable **after-trade** events in Flow C are exactly where Kafka *does* belong.
 
 #### Flow C — the after-trade path (steps 7–8c): *"money and records settle, in the background"*
 
@@ -157,14 +163,14 @@ Once a trade is matched, the *bookkeeping* — paying the seller, updating who o
 
 > **Why background:** settlement and records must be *correct and durable*, but not *instant*. Running them through Kafka keeps the fast path fast, and each consumer can fail, retry, and recover on its own without ever touching the engine.
 
-**Resilience note (not a request flow):** the **log also replays into the engine after a crash**, and constantly feeds a **standby engine** that mirrors the main one and takes over if it fails — see [§5](#5-resilience--failover).
+**Resilience note (not a request flow):** because the engine's state comes entirely from *reading the log*, a **standby engine reads the same log in lockstep** and takes over instantly if the primary fails, and **recovery is just a replay** — see [§5](#5-resilience--failover).
 
 | Layer | Component | Store / note |
 |---|---|---|
 | Entry | **Order gateway** — login, risk/balance check, **reserve funds from wallet** (no outside payment on the fast path) | → Wallet |
 | Wallet | **Wallet / balances** — `available` + `reserved`; pre-loaded, topped up separately | KV / RDBMS |
-| Spine | **Sequencer** — stamps an ever-increasing `seq`, **writes to the log before matching** | → Log, → Engine |
-| Spine | **Input log** — write-once, durable + **replayable**, copied ×3, feeds the standby | append-only log |
+| Spine | **Sequencer** — stamps an ever-increasing `seq`, **appends to the log before matching**; never calls the engine | → Log |
+| Spine | **Input log** — write-once, durable + **replayable**, copied ×3; **engine and standby each read it by cursor** | → Engine, → Standby |
 | **Core** | **Matching engine** — **in-memory order book per stock**, price-time priority, **one thread per stock**, split across machines by stock, **no disk/network on the fast path** | in-memory |
 | **Core** | **Standby engine** — replays the same log, takes over on failure | in-memory |
 | Read | **Price publisher** — pushes out trades + book changes | → Fan-out layer |
@@ -199,10 +205,15 @@ on_order(o):                       # o was already sequenced + logged BEFORE we 
 **Problem B — stay crash-safe without touching a database on the fast path.** The engine never writes to a database. Safety comes from **replaying a log** (this technique is called event sourcing):
 
 ```text
-# BEFORE matching: the sequencer writes every incoming order to a replicated log.
+# SEQUENCER side — stamp + append, then done. It never calls the engine.
 seq = next_sequence()
 journal.append(seq, order)          # copied x3; THIS is the durable record
-feed_to_engine(seq, order)          # the engine reads the ordered stream
+
+# ENGINE side — a SEPARATE loop that reads the log by its own cursor (pull, not push).
+cursor = last_applied_seq           # on restart: resume from snapshot's seq
+while True:
+    seq, order = journal.read_next(cursor)   # ring buffer on the hot path — no network, no lock
+    on_order(order); cursor = seq            # match against the in-memory book
 
 # RECOVERY / FAILOVER: replay the log.
 #   The engine's state is fully decided by the log: replay seq 0..N -> the exact same book.
@@ -212,6 +223,8 @@ feed_to_engine(seq, order)          # the engine reads the ordered stream
 #   both OFF the fast path.
 ```
 
+> **Read-a-log, not RPC.** The sequencer and engine never call each other — the sequencer *appends*, the engine *reads by cursor*. That one choice is what lets the **standby stay in lockstep** and makes **recovery just a replay** ([§5](#5-resilience--failover)); a direct push would force the sequencer to track every consumer and would break both.
+
 | The hard problem | How the ideal design solves it |
 |---|---|
 | Two orders try to grab the same waiting order | **One thread per stock** — matching happens one at a time, so nothing can clash; no locks, no half-written reads |
@@ -220,12 +233,28 @@ feed_to_engine(seq, order)          # the engine reads the ordered stream
 | Speed vs. durability | Durability is one **sequential append to a log**, not a slow random database write; matching stays in memory, in microseconds |
 | 100M readers of a number that changes every trade | **Push it out through a fan-out layer**, not read replicas — trades stream out; readers subscribe |
 
+**Routing & partitioning — how an order reaches the right book.** The single-writer trick only works if every order for a stock reliably lands on the *one* engine that owns it. The gateway routes each order by its **`stock_id`**, so **same stock → same partition → same sequencer → same book**, every time. Because different stocks never match against each other, you **never need a global order across the exchange** — only a consistent order *within* each stock's stream, which one partition gives you for free.
+
+- **Routing function** — consistent hashing on `stock_id`, or (often the better fit here) an explicit **`stock_id → partition` shard map** held in a coordination service such as ZooKeeper/etcd. Both are deterministic; the shard map also lets you **place hot stocks deliberately** to balance load instead of leaving it to a hash. See [Load Balancing & Consistent Hashing](../../concepts/03-networking-and-delivery/load-balancing-and-consistent-hashing.md).
+- **One active writer per partition** — the routing key points to a *partition*, not a fixed machine. Exactly **one sequencer writes each stream**, so `seq = seq + 1` is consistent by construction — no locks, no distributed consensus on the hot path ([single-writer principle](../../concepts/08-distributed-systems/concurrency-control.md)). A hot standby + the replicated log preserve that single-writer invariant across failover: the old primary is **fenced off** before the promoted standby accepts writes and resumes `seq` from the log. Failover changes *which machine* serves a partition, never *how many writers* it has.
+
 ### 5. Resilience & failover
 
-- **Warm standby by replay** — the standby constantly reads the same log, so failover is instant and loses nothing; there's no leader election on the fast path itself.
-- **The log is the source of truth** — copied ×3; occasional **snapshots of the book** keep replay time short (replay = latest snapshot + the log since then).
-- **Reserve funds early, settle later** — because money is reserved when the order arrives, a settlement failure never blocks or reverses a match; **Kafka retry → dead-letter queue → wallet-credit** handles payout failures (my interview answer, kept).
-- **The read layer can fall behind on its own** — if the fan-out layer lags, matching is unaffected and prices simply catch up. The two systems fail separately by design.
+When the primary engine dies, the standby must take over **without losing or double-counting a single trade** — and the design gets this almost for free from one fact: **both engines read the same seq-ordered log by cursor** (Flow A ⑤). The standby isn't reconstructing state *after* the crash; it has already applied the log up to some `seq`, so **the sequence number *is* its bookmark** — it knows exactly where it is and simply keeps reading. "Which trades are already processed?" has a precise answer: whatever `seq` range has been applied.
+
+![Failover timeline for the matching engine drawn as a sequence diagram across five participants - the sequencer which is the one writer per stock, the replicated log copied three times which is the source of truth, the primary engine, the standby engine, and downstream Kafka consumers for settlement portfolio and trade log. In the normal run both engines replay the same seq-ordered log in lockstep. The sequencer appends seq6 with the order to the log before any match, and the log delivers seq6 to both the primary and the standby. Each applies seq6 and reaches the same book state deterministically. The primary emits the trade to downstream with exec_id equal to f of seq6 and downstream records that exec_id. The primary then crashes right after emitting seq6. On failover the standby fences the old primary by revoking its lease so it can no longer write, then is promoted to primary - it already applied up to seq6 so it knows exactly where it is because the seq number is the bookmark. The sequencer continues appending seq7 which the log delivers to the new primary, which continues from seq7 onward with no reconstruction needed. If the handover replays seq6 again it re-emits the same exec_id f of seq6, and downstream dedups on the identical exec_id so there is no double trade. Finally on a cold restart where both engines are lost, recovery loads the latest snapshot at seq N and replays only the log tail after seq N.](./diagrams/failover-sequence.png)
+
+**How failover stays correct:**
+
+- **The seq number is the bookmark.** Primary and standby consume the same replicated log in lockstep, so the standby always knows it has applied "up to `seq N`". On promotion it just continues from `N+1` — no reconstruction, no "figure out what the dead primary did".
+- **Deterministic outputs, so a replay can't double-count.** A trade's id is derived from its input (`exec_id = f(seq)`), **not** a random value or wall-clock. If the handover replays a `seq` the dead primary had already emitted, the re-emit carries the **same** `exec_id`, and downstream (settlement, portfolio, trade log) is **idempotent** — it dedups by `exec_id`. At-least-once emit + idempotent consumers = an exactly-once *effect*.
+- **Fencing prevents two writers.** Before the standby is promoted, the old primary is **fenced** — its lease revoked, its writes rejected — so a slow-but-alive old primary can never keep emitting alongside the new one (no split-brain). This preserves the single-writer-per-partition invariant across failover.
+- **Warm standby, no election on the fast path.** The standby is always caught up, so failover is instant; there's no consensus round on the hot path.
+- **Cold restart = snapshot + tail.** If *both* engines are lost, recovery loads the latest **book snapshot at `seq N`** and replays only the **log tail after `N`** — the same read, from a checkpoint, so it's fast even after millions of orders.
+- **Reserve funds early, settle later** — money is reserved when the order arrives, so a settlement failure never blocks or reverses a match; **Kafka retry → dead-letter queue → wallet-credit** handles payout failures (my interview answer, kept).
+- **The read layer fails on its own** — if the fan-out layer lags, matching is unaffected and prices simply catch up. The two systems fail separately by design.
+
+> **Do the two cursors stay in sync?** No — and they don't need to. "Lockstep" means *same input, same order, same deterministic result at each `seq`* — **not** "same cursor at the same instant." The primary does more per order (it also emits to the price feed and Kafka, fire-and-forget), so the **standby, doing less, often runs slightly *ahead*** — momentary skew in either direction is normal. It's harmless because the **durable log holds every order before matching**, so a cursor position is just "how far this reader has read"; the unread tail is safe in the log, not lost. On failover the standby **resumes from its own cursor and reads the tail forward** — if it was ahead there's nothing to catch up, if behind it drains the remaining log entries (bounded by replication lag) *before* accepting new orders. Determinism guarantees that at `seq N` its book is identical to what the primary's was, and idempotent `exec_id = f(seq)` cleans up any re-emitted overlap. It's exactly two Kafka consumers on one partition at different offsets — a non-issue by design.
 
 ### 6. Data model — where the crux actually lives
 
@@ -248,8 +277,32 @@ The single most important insight: **the order book is an in-memory data structu
 | **Log first, then match (event sourcing)** | A database write per match | Appending to a log is fast *and* durable, and replay gives you recovery and a warm standby for free. A database write per match is slower and harder to recover |
 | **Reserve wallet funds, settle later** | Outside payment inside the trade path | Keeps slow outside calls off the microsecond path (the original flaw); a settlement failure never blocks a match |
 | **Push prices through a fan-out layer** | Read replicas + cache | 100M reads/sec of a number that changes every trade is a push problem; replicas would collapse. Publish each change once and fan it out |
+| **In-memory → multicast for the live feed** | Route the live feed through Kafka too | Multicast gives µs, one-to-thousands fan-out for the latency-critical feed; Kafka adds broker latency + tail jitter. Kafka is right for the **durable after-trade** events, not the live tick feed — **tee both** when you serve ms-tolerant *and* µs consumers ([§8](#8-alternative-designs-considered)) |
 | **Spread stocks across machines, don't split one stock** | Batch or split a hot stock | One book can only run one at a time; ~200 trades/sec/stock needs no splitting. Batching adds delay, breaking the whole premise |
 | **Consistency on writes, availability on reads** | One model for everything | Orders/matches need strong consistency + durability; prices/profiles can tolerate being a fraction of a second stale (my correct call, kept) |
+
+### 8. Alternative designs considered
+
+Part of getting this right was **challenging the design and proposing alternatives** — the most instructive one: *"why not send everything through a single Kafka topic, and make the price publisher just another Kafka consumer?"* It's a legitimate design, and comparing it sharpens *why* the ideal design splits transports.
+
+**Proposed — one Kafka log for everything.** The engine emits one trade event to Kafka; settlement, trade-log, portfolio, **and** the price publisher all consume it; the price publisher then updates a CDN/edge cache and pushes to clients over WebSocket/SSE.
+
+| | Single-Kafka design | Ideal design (split transports) |
+|---|---|---|
+| Simplicity / ops | ✅ **one** backbone, fewer moving parts | more parts — multicast bus + edge tier + Kafka |
+| Durability + replay | ✅ every consumer replays by offset | after-trade replays; live feed is ephemeral |
+| After-trade fan-out | ✅ identical — settle / log / portfolio | ✅ identical |
+| **Live-feed latency** | ❌ inherits Kafka broker latency + tail jitter | ✅ µs via in-memory ring → multicast → edge |
+| Book-delta coverage | ⚠️ "trade events" miss best-bid/ask moves with no trade | book deltas emitted explicitly |
+| Wasted I/O | ⚠️ persists every ephemeral tick durably | ephemeral ticks never touch disk |
+
+**Verdict — it depends on *who reads the price feed*:**
+
+- **Retail / consumer app** (humans watching a browser): a few ms via Kafka is imperceptible → the **single-Kafka design is arguably better** — simpler, durable, replayable. My earlier "microseconds" objection doesn't apply to this audience.
+- **Professional / algo / co-located consumers** (microseconds matter): Kafka is disqualifying for the live feed → you need the **in-memory → multicast** path.
+- **A real venue serves both** → **tee the feed**: emit once to Kafka (durable, ms-tolerant consumers) *and* once to multicast (µs consumers). This is the **transport-per-consumer** principle — match the transport to each consumer's latency and durability needs; don't force one bus to do both. See [Low-Latency Messaging](../../concepts/07-messaging-and-events/low-latency-messaging.md).
+
+> **One gap in the proposed sketch:** the price publisher had **no incoming source** drawn — it must be fed by the engine's (or Kafka's) trade + book-delta stream. Always wire the publisher's input explicitly, or the whole read path floats disconnected.
 
 ## Takeaways to drill
 
@@ -260,5 +313,6 @@ The single most important insight: **the order book is an in-memory data structu
 5. **Put the core in the right place.** The order book lives **in memory**, not in a database table. When the key data structure clearly needs memory and a single owner, drawing it as a datastore is the tell that I didn't really understand the core.
 6. **Huge read loads are a fan-out problem.** 100M reads/sec of a number that changes every trade → **a price publisher + edge push layer (WebSocket/SSE)**, kept separate from matching. Read replicas are only for slow-changing data.
 7. **Bank the wins — they're senior instincts.** One thread per stock, the wallet fix, the Kafka failure handling, and the consistency split are real strengths that carried into a brand-new domain. The gap is **depth on the core**, not the fundamentals — which is exactly what a focused re-solve fixes.
+8. **Know the plumbing, not just the boxes.** The two things worth being able to defend cold: the engine **reads the log by cursor (pull), it isn't pushed** — which is *why* the standby stays in lockstep and recovery is a replay; and failover is correct because **the seq is a bookmark + outputs are idempotent (`exec_id = f(seq)`) + the old primary is fenced**. Draw the data path so it can't imply the wrong mechanism, and match the **transport to each consumer** (µs multicast for the live feed, durable Kafka for after-trade) instead of forcing one bus to do both.
 
 → Consolidated feedback across all sessions lives in the [practice tracker](../README.md). Rehearse with the [Opening Ritual](../opening-ritual.md) + [Answer Framework](../answer-framework.md) before the next mock.

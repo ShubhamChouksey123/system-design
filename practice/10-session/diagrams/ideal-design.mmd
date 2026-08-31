@@ -8,16 +8,18 @@ flowchart LR
     classDef readCls fill:#e0f7fa,stroke:#00838f,color:#006064;
 
     Trader([Trader - places orders]):::clientCls
-    GW["Order gateway<br/>check login, check balance,<br/>reserve funds from wallet - no slow payment on the fast path"]:::edgeCls
+    GW["Order gateway<br/>check login, check balance,<br/>reserve funds from wallet - no slow payment on the fast path<br/>route order by stock_id - consistent hashing or shard map"]:::edgeCls
     WALLET[("Wallet / balances<br/>available + reserved money<br/>pre-loaded, topped up separately")]:::storeCls
-    SEQ["Sequencer<br/>stamp an ever-increasing number,<br/>write to the log BEFORE matching"]:::spineCls
+    SEQ["Sequencer - one active writer per partition<br/>stamp an ever-increasing number,<br/>write to the log BEFORE matching"]:::spineCls
     JOURNAL[("Input log - write-once<br/>the durable record; replay rebuilds the books<br/>copied x3, feeds the standby")]:::spineCls
 
-    ME["Matching engine - THE CORE<br/>in-memory order book per stock<br/>best price first, then oldest first<br/>one thread per stock, stocks spread across machines<br/>matches in microseconds, no disk or network on the fast path"]:::coreCls
+    ME["Matching engine - THE CORE<br/>in-memory order book per stock<br/>best price first, then oldest first<br/>one thread per stock, stocks spread across machines<br/>matches in microseconds, no disk or network on the fast path<br/>emits results fire-and-forget, holds no client connections"]:::coreCls
     STBY["Standby engine<br/>replays the same log, ready to take over"]:::coreCls
 
-    MD["Price publisher<br/>pushes out trades + book changes"]:::readCls
-    EDGE["Fan-out layer<br/>WebSocket / SSE + edge cache<br/>absorbs 100M reads/sec"]:::readCls
+    MD["Price publisher<br/>normalize + conflate, stamp per-symbol seq<br/>publish once, and write the latest snapshot"]:::readCls
+    BUS["Internal multicast bus - Aeron / UDP<br/>one send reaches every edge node - 1 to thousands"]:::readCls
+    EDGE["Edge fan-out tier - WebSocket / SSE<br/>holds the client connections<br/>one update in, push to all clients - thousands to millions"]:::readCls
+    CACHE[("Edge cache - latest snapshot<br/>bootstraps new clients, absorbs pollers")]:::readCls
     ReadC([Viewers - live price feed]):::clientCls
 
     SETTLE["Clearing / settlement<br/>runs in the background, off the fast path<br/>move cash + shares, pay the seller"]:::edgeCls
@@ -28,15 +30,17 @@ flowchart LR
 
     Trader -->|"1 place order"| GW
     GW -->|"2 reserve balance"| WALLET
-    GW -->|"3 validated order"| SEQ
-    SEQ -->|"4 write to log first"| JOURNAL
-    SEQ -->|"5 feed the ordered stream"| ME
-    JOURNAL -.->|"replay on recovery"| ME
-    JOURNAL -.->|"same stream"| STBY
-    ME -->|"6 trade + book change"| MD
+    GW -->|"3 validated order, routed by stock_id"| SEQ
+    SEQ -->|"4 stamp seq, append to the log"| JOURNAL
+    JOURNAL -->|"5 engine reads the stream by cursor<br/>same read replays on recovery"| ME
+    JOURNAL -->|"5 standby reads the same stream<br/>by its own cursor"| STBY
+    ME -->|"6 emit execution + book delta, fire-and-forget"| MD
     ME -->|"7 send after-trade event"| KAFKA
-    MD --> EDGE
-    EDGE -->|"push live prices"| ReadC
+    MD -->|"6a write snapshot"| CACHE
+    MD -->|"6b publish once"| BUS
+    BUS -->|"multicast to edge nodes"| EDGE
+    EDGE -->|"6c push deltas - SSE / WS"| ReadC
+    ReadC -.->|"6d snapshot on connect, resync on seq gap"| CACHE
     KAFKA -->|"8a settle + pay seller"| SETTLE
     KAFKA -->|"8b update holdings"| PORT
     KAFKA -->|"8c record the trade"| TRADEDB

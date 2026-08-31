@@ -1,0 +1,36 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "16px"}}}%%
+sequenceDiagram
+    autonumber
+    participant SEQ as Sequencer<br/>one writer per stock
+    participant LOG as Replicated log<br/>copied x3 - the source of truth
+    participant P as Primary engine
+    participant S as Standby engine
+    participant DOWN as Downstream<br/>Kafka - settle / portfolio / trade log
+
+    Note over SEQ,S: NORMAL RUN - both engines replay the SAME seq-ordered log in lockstep
+
+    SEQ->>LOG: append seq6, order  (BEFORE any match)
+    LOG-->>P: deliver seq6
+    LOG-->>S: deliver seq6
+    Note over P: apply seq6, match<br/>book is now AT seq6
+    Note over S: apply seq6, match<br/>SAME result (deterministic)<br/>book is now AT seq6
+    P->>DOWN: emit trade, exec_id = f(seq6)
+    Note over DOWN: record exec_id f(seq6)
+
+    rect rgb(255, 235, 235)
+    Note over P: X  CRASH (right after emitting seq6)
+    end
+
+    Note over SEQ,S: FAILOVER
+    S-->>P: FENCE the old primary<br/>revoke its lease - it can no longer write
+    Note over S: promote to primary.<br/>It already applied up to seq6,<br/>so it KNOWS exactly where it is -<br/>the seq number IS the bookmark.
+
+    SEQ->>LOG: append seq7, order
+    LOG-->>S: deliver seq7
+    Note over S: continue seq7, seq8, ...<br/>no reconstruction needed
+
+    Note over S,DOWN: If the handover replays seq6 again,<br/>it re-emits the SAME exec_id f(seq6)
+    S->>DOWN: possible re-emit, exec_id = f(seq6)
+    Note over DOWN: same exec_id -> DEDUP<br/>-> no double trade
+
+    Note over LOG,S: COLD RESTART (both engines lost):<br/>load latest SNAPSHOT at seq N,<br/>then replay only the log tail after seq N.

@@ -139,6 +139,7 @@ nav:
           - Message Queues & Brokers: concepts/07-messaging-and-events/message-queue.md
           - Apache Kafka: concepts/07-messaging-and-events/apache-kafka.md
           - Event-Driven Architecture: concepts/07-messaging-and-events/event-driven-architecture.md
+          - Low-Latency Messaging (UDP / Aeron): concepts/07-messaging-and-events/low-latency-messaging.md
       - "08 · Distributed Systems":
           - Single Point of Failure: concepts/08-distributed-systems/single-point-of-failure.md
           - Consistency Models — Strong, Eventual, Quorum: concepts/08-distributed-systems/consistency-models.md

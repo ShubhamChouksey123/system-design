@@ -7,11 +7,11 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 ## 📊 Progress Tracking
 
-Track your overall concepts: **27 / 50 completed (54%)** *(read + revised)*
+Track your overall concepts: **27 / 51 completed (53%)** *(read + revised)*
 
-- **Written:** 41 / 50 — **82%** *(9 in backlog — the `*(todo)*` rows)*
-- **Read:** 27 / 50 — **54%**
-- **Revised:** 0 / 50 — **0%**
+- **Written:** 42 / 51 — **82%** *(9 in backlog — the `*(todo)*` rows)*
+- **Read:** 27 / 51 — **53%**
+- **Revised:** 0 / 51 — **0%**
 
 > Tick `☐ → ✅` in the table as you go; run `scripts/progress.sh` to refresh these counts.
 
@@ -61,6 +61,7 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | **07 · Messaging & Events** | [Message Queue](./07-messaging-and-events/message-queue.md) |  ☐   | ☐ | —             |
 | | [Apache Kafka](./07-messaging-and-events/apache-kafka.md) |  ☐   | ☐ | —             |
 | | [Event-Driven Architecture](./07-messaging-and-events/event-driven-architecture.md) |  ☐   | ☐ | —             |
+| | [Low-Latency Messaging — UDP multicast / Aeron / ring buffers](./07-messaging-and-events/low-latency-messaging.md) |  ☐   | ☐ | —             |
 | **08 · Distributed Systems** | [Single Point of Failure](./08-distributed-systems/single-point-of-failure.md) |  ✅   | ☐ | 2026-08-17    |
 | | [Consistency Models — strong / eventual / quorum](./08-distributed-systems/consistency-models.md) |  ✅   | ☐ | 2026-08-18    |
 | | [Concurrency Control — locks / CAS / atomic update / single-writer](./08-distributed-systems/concurrency-control.md) |  ☐   | ☐ | —             |
