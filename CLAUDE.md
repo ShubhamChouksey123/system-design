@@ -19,15 +19,21 @@ concepts/            the study resources
                        00-framework/ · 01-envelope-estimation/ · 02-foundations/ ·
                        03-networking-and-delivery/ · 04-apis/ (11 files) ·
                        05-databases-and-storage/ · 06-caching/ ·
-                       07-messaging-and-events/ · 08-distributed-systems/
+                       07-messaging-and-events/ · 08-distributed-systems/ ·
+                       09-reliability-and-operations/
     diagrams/        optional Excalidraw diagrams for that section (.excalidraw source + .png)
 practice/            mock-interview log & prep playbook
   README.md          progress tracker (scored session table + recurring themes)
+  GUIDELINES.md      authoring rules for session folders (structure, required headings, ideal-design contents, diagrams)
   answer-framework.md the 8-step answer playbook to run in the room
+  opening-ritual.md  fixed pre-mock drill sequence — run before every mock
+  re-solve-checklist.md checklist for a deliberate re-attempt of an already-scored problem
   NN-session/        one folder per mock (README.md = analyzed write-up + diagram; script.md = raw transcript)
 docs/                book PDF (gitignored) + TODO.md (backlog)
+scripts/progress.sh  recomputes concepts/README.md's "📊 Progress Tracking" block from the concept table itself (`--check` previews without editing)
 .claude/skills/excalidraw-diagram/   diagram-rendering skill (render via uv; GUIDELINES §8)
 mkdocs.yml           MkDocs Material site config (see "Docs site" below)
+overrides/main.html  MkDocs theme override — Google Search Console verification tag
 site-docs/           thin MkDocs root: symlinks to concepts/, practice/, docs/, README (don't edit content here)
 .github/workflows/   GitHub Actions — builds & deploys the docs site to Pages
 tmp.md               user's scratchpad / prompt buffer (gitignored — not a deliverable)
@@ -36,7 +42,7 @@ tmp.md               user's scratchpad / prompt buffer (gitignored — not a del
 The user **reorganizes freely** (renames/moves folders, flattens directories, relocates the index). **Always re-inspect the tree from the repo root before adding or linking files** — never assume the last-known layout.
 
 ### The concept index (also a progress tracker)
-`concepts/README.md` is the **single** concept index **and** the study-progress tracker. Its table has `Section · Concept · Read · Revised · Last Revision` columns, and it lists **unwritten backlog concepts as unlinked rows marked `*(todo)*`** (mirroring `docs/TODO.md`). When you **write** a concept: convert its row from plain text to a link (or add a new row with `↳` for a companion), and **bump the `## 📊 Progress Tracking` counts** at the top (`Written X / 47` + %). `Read`/`Revised` checkboxes and `Last Revision` are the user's to fill — leave them as `☐`/`—`. The root `README.md` is a thin landing page into `concepts/` and `practice/`; it does **not** duplicate the table, so leave it alone. Verify links resolve after any move.
+`concepts/README.md` is the **single** concept index **and** the study-progress tracker. Its table has `Section · Concept · Read · Revised · Last Revision` columns, and it lists **unwritten backlog concepts as unlinked rows marked `*(todo)*`** (mirroring `docs/TODO.md`). When you **write** a concept: convert its row from plain text to a link (or add a new row with `↳` for a companion). Then run **`scripts/progress.sh`** to recompute the `## 📊 Progress Tracking` block from the table itself (`scripts/progress.sh --check` previews the counts without editing) — don't hand-edit those numbers. `Read`/`Revised` checkboxes and `Last Revision` are the user's to fill — leave them as `☐`/`—`. The root `README.md` is a thin landing page into `concepts/` and `practice/`; it does **not** duplicate the table, so leave it alone. Verify links resolve after any move.
 
 ### Naming
 Numbered folders (`00-`…`08-`) are **ordered topic sections** — each holds **sibling concept files** for that topic (e.g. `04-apis/` holds 11; `05-databases-and-storage/` holds 3). Files use descriptive kebab-case names **without** the number prefix (e.g. `apache-kafka.md`). **Reading order is the row order in `concepts/README.md`, not the filesystem.** Companion files (e.g. `back-of-the-envelope-examples.md`) sit beside their primary concept.
@@ -62,8 +68,11 @@ Numbered folders (`00-`…`08-`) are **ordered topic sections** — each holds *
 - `practice/answer-framework.md` — the **content** playbook: *what* to cover in an answer (8 steps: functional/non-functional reqs → estimation → architecture → walkthrough → data model → trade-offs → testing/monitoring). Maps its 8 steps onto the other doc's 4 phases.
 
 ## Practice tracker conventions (`practice/`)
-- Each mock is `NN-session/` containing a **`README.md`** — the polished, standalone **analyzed write-up** (problem → requirements → estimation → design **+ diagram** → scorecard → gap-by-gap "what lost points & the fix" table → takeaways) — backed by **`script.md`**, the raw transcript. The README is the reader-facing page (public-repo asset); `script.md` is the authentic log it links to. Diagrams go in `NN-session/diagrams/` (Mermaid `.mmd` + same-named `.png`, per GUIDELINES §8).
-- `practice/README.md` is the progress tracker: a **session table scored /10 across five axes** (Requirements, Design, Problem-Solving, Scale & Trade-offs, Communication + Overall) with verdict thresholds (✅ ≥7 · ⚠️ 5.5–6.9 · ❌ <5.5), followed by **Consolidated Tips grouped by axis (weakest first)** with `[S01]`-style session tags, **Recurring Action Items**, and a **How to Improve** diagnosis. When logging a new session, add the row and promote any repeated feedback into the recurring sections — that aggregation is the point.
+- **Authoring rules live in [`practice/GUIDELINES.md`](practice/GUIDELINES.md)** — read it before writing or updating a session. It has the required heading order, the mandatory contents of the `## The ideal design` section, scoring/honesty conventions, diagram rules, and a save checklist.
+- Each mock is `NN-session/` containing exactly **`README.md`** — the polished, standalone **analyzed write-up** (problem → requirements & estimation → design produced → scorecard → gap-by-gap "what lost points & the fix" table → what went well → **the ideal design** (reference answer) → takeaways) — backed by **`script.md`**, the raw transcript. The README is the reader-facing page (public-repo asset); `script.md` is the authentic log it links to. Diagrams go in `NN-session/diagrams/`: the ideal-design diagram is Mermaid (`.mmd` + same-named `.png`, rendered via `npx @mermaid-js/mermaid-cli`, sandbox disabled); as-drawn requirements/architecture snapshots can be the raw canvas screenshots.
+- `practice/README.md` is the progress tracker: a **session table scored /10 across five axes** (Requirements, Design, Problem-Solving, Scale & Trade-offs, Communication + Overall) with verdict thresholds (✅ ≥7 · ⚠️ 5.5–6.9 · ❌ <5.5), followed by per-session write-up blurbs, **Consolidated Tips grouped by axis (weakest first)** with `[S01]`-style session tags and per-axis score-history strings, **Recurring Action Items**, and a **How to Improve** diagnosis. When logging a new session, add the row + blurb + related-concepts tag and promote any repeated feedback into the recurring sections — **that aggregation is the point**, not an optional extra.
+- **[`practice/opening-ritual.md`](practice/opening-ritual.md)** (fixed pre-mock drill sequence) and **[`practice/re-solve-checklist.md`](practice/re-solve-checklist.md)** (gate checklist for deliberately re-attempting an already-scored problem) are rehearsal tools, not logs — don't add sessions to them.
+- Every new session must also update **`mkdocs.yml`**: add the README under `nav:` and the `script.md` under `not_in_nav:` (CI runs `mkdocs build --strict`, so a broken relative link fails the build).
 
 ## Editorial stance
 

@@ -1,0 +1,66 @@
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    classDef clientCls fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+    classDef edgeCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef coreCls fill:#ffebee,stroke:#c62828,color:#b71c1c;
+    classDef spineCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef storeCls fill:#fff8e1,stroke:#f9a825,color:#795548;
+    classDef readCls fill:#e0f7fa,stroke:#00838f,color:#006064;
+    classDef opsCls fill:#eceff1,stroke:#546e7a,color:#263238;
+
+    Uploader([Uploader - creator]):::clientCls
+    Viewer([Viewer - anywhere in the world]):::clientCls
+
+    GW["API Gateway<br/>authN + authZ + rate limiting"]:::edgeCls
+    UPSVC["Upload service<br/>creates video row - status = uploading<br/>returns a signed multi-part S3 URL"]:::edgeCls
+    RAWS3[("Raw bucket - AWS S3<br/>the master file - x3 replicated, never regenerated for free")]:::storeCls
+
+    QUEUE["Ingest queue - Kafka<br/>fed by the S3 upload-complete event"]:::spineCls
+    PRECHECK["Pre-check worker<br/>tamper / malware scan<br/>splits raw file into GOP chunks"]:::coreCls
+    DAG["DAG orchestrator<br/>builds a per-video workflow<br/>one branch per rendition, run in parallel"]:::coreCls
+    MGR["Transcode manager<br/>priority queue of tasks<br/>heartbeats workers, reassigns on missed beat<br/>retries N times then DEAD-LETTERS the task"]:::coreCls
+    WORKERS["Transcode worker pool - autoscaled on queue depth<br/>encode to 480p/720p/1080p, MP4/WebM<br/>generate thumbnails, merge chunks per rendition"]:::coreCls
+    DLQ[("Dead-letter queue<br/>alerts + manual/auto re-drive")]:::opsCls
+
+    PROCS3[("Processed bucket - AWS S3<br/>segments + manifest per rendition")]:::storeCls
+    METASVC["Metadata service<br/>flips status -> live only once the<br/>minimum rendition set is ready"]:::edgeCls
+    METAW[("Metadata store - writer")]:::storeCls
+    METAR[("Metadata store - reader replica")]:::storeCls
+    METAC[("Metadata cache - Redis")]:::readCls
+
+    POP["Popularity job<br/>decaying score from the view-count stream<br/>promotes/demotes edge TTL, not a fixed threshold"]:::opsCls
+    CDN["CDN edge<br/>manifest + segments for hot videos<br/>most bytes served here"]:::readCls
+    STREAMSVC["Streaming service<br/>direct-from-S3 path for cold videos<br/>result populates the CDN on a miss"]:::readCls
+
+    VIEWQ["View-event stream - Kafka"]:::spineCls
+    COUNTER["Counter aggregation service<br/>AP - approximate, never blocks a read"]:::opsCls
+    COUNTC[("View-count cache")]:::readCls
+
+    MON["Monitoring / alerting<br/>queue depth, worker heartbeats,<br/>pipeline lag, CDN hit ratio"]:::opsCls
+
+    Uploader -->|"1 POST /videos"| GW --> UPSVC
+    UPSVC -->|"2 write status=uploading"| METAW
+    UPSVC -->|"3 signed URL"| Uploader
+    Uploader -->|"4 PUT raw file directly"| RAWS3
+    RAWS3 -->|"5 upload-complete event"| QUEUE --> PRECHECK --> DAG
+    DAG -->|"6 one task per rendition"| MGR --> WORKERS
+    WORKERS -.->|"exhausted retries"| DLQ
+    WORKERS -->|"7 write rendition segments"| PROCS3
+    WORKERS -->|"8 mark rendition ready"| METASVC
+    METASVC -->|"9 write / flip status"| METAW
+    METAW -->|"replication"| METAR
+    METASVC -->|"invalidate"| METAC
+
+    Viewer -->|"a GET /videos/{id}/manifest"| GW --> METASVC
+    METASVC -->|"read"| METAC -.->|"cache miss"| METAR
+    Viewer -->|"b GET segment - hot video"| CDN
+    Viewer -->|"c GET segment - cold video"| STREAMSVC --> PROCS3
+    STREAMSVC -.->|"populate on miss"| CDN
+    POP -->|"tune edge TTL"| CDN
+    VIEWQ --> COUNTER --> COUNTC
+    Viewer -->|"view event"| VIEWQ
+    COUNTC --> POP
+
+    MGR -.-> MON
+    CDN -.-> MON
+    QUEUE -.-> MON
