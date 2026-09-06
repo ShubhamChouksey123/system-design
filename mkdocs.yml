@@ -93,6 +93,7 @@ not_in_nav: |
   practice/10-session/script.md
   practice/11-session/script.md
   practice/12-session/script.md
+  practice/13-session/script.md
 
 nav:
   - Home: index.md
@@ -166,3 +167,4 @@ nav:
       - "Session 10 — High-Frequency Stock Trading System": practice/10-session/README.md
       - "Session 11 — High-Frequency Stock Trading System (Re-solve)": practice/11-session/README.md
       - "Session 12 — Video Streaming Platform": practice/12-session/README.md
+      - "Session 13 — Social Media Platform": practice/13-session/README.md

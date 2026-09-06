@@ -1,0 +1,143 @@
+# Session 13 — Social Media Platform (Instagram/Twitter feed + WhatsApp messaging style) · ✅ 7.5/10
+
+> A scored, analyzed system-design mock — and the broadest prompt in the log by a wide margin. "Design a scalable social media platform" turned out to bundle **three separate system-design questions into one**: a media upload/transcode pipeline (the [S12](../12-session/README.md) problem), real-time messaging (the [S08](../08-session/README.md)/[S09](../09-session/README.md) problem), and a news feed with a celebrity fan-out problem, all sharing one user base. Rather than picking a lane, the design covered **all three with real depth** — signed-URL uploads into the same GOP-chunked transcode pipeline as S12, a **hybrid push/pull feed** that explicitly names the celebrity fan-out problem and solves it, and a **WebSocket messaging path with online/offline branching** into push notifications. The interviewer's own read: **✅ Hire, 7.5/10** — continuing [S12](../12-session/README.md)'s break from the "first hard-crux problem regresses sharply" pattern, this time on a problem that's arguably three hard cruxes stacked at once. What's still open: **cache/DB consistency** was never addressed, **CAP-style availability-vs-consistency trade-offs** stayed implicit, **WebSocket horizontal scaling and connection/session management across gateway instances** wasn't raised, **rate limiting stayed generic** (no per-endpoint/per-tier granularity), and **security stopped at signed URLs** (no encryption-at-rest/in-transit or access-control discussion). The candidate's own closing observation — that this prompt is really three interview questions merged into one — is exactly right, and worth naming *in the room* next time as a scoping move.
+
+| | |
+|---|---|
+| **Problem** | Design a scalable social media platform — news feed, real-time messaging, and notifications for millions of users |
+| **Focus** | Three sub-problems in one: media upload/transcode, hybrid push/pull feed fan-out, and WebSocket messaging with offline delivery |
+| **Overall** | **7.5 / 10** — ✅ **Hire** — up 0.3 from S12's 7.2, on an even broader brand-new problem *(the second session running that didn't regress on first contact with a fresh hard crux)* |
+| **Strongest areas** | Requirements Gathering, Design Skills (8.0 each) |
+| **Full transcript** | [`script.md`](./script.md) (raw interview log) |
+
+## The problem
+
+> Design a **scalable social media platform** that can handle millions of users **posting, sharing, and interacting with content in real-time**. Include features like **news feed, messaging, and notifications**.
+
+This reads like one prompt but is really three canonical problems sharing a user base: **(1)** a media pipeline — upload, transcode into renditions, serve globally (the [S12](../12-session/README.md) crux); **(2)** a feed — fan-out a new post to the right readers without a celebrity account blowing up the write path; **(3)** real-time messaging — route a message to a specific live connection, and fall back to push notifications when the recipient is offline (the [S08](../08-session/README.md)/[S09](../09-session/README.md) crux). A senior answer either negotiates scope up front ("there's a lot here — want me to go deep on one and survey the others?") or, if covering all three, keeps each one's *specific* crux decision explicit rather than letting breadth dilute depth.
+
+## Terminology
+
+| Term | Meaning |
+|---|---|
+| **Fan-out-on-write (push)** | When a post is created, immediately write it into every follower's feed. Fast reads (the feed is already assembled), but a celebrity with millions of followers turns one post into millions of writes. |
+| **Fan-out-on-read (pull)** | Don't precompute anything; when a user opens their feed, fetch posts from everyone they follow and merge at read time. No write blowup, but slower reads, especially for someone who follows many people. |
+| **Hybrid feed** | Push for normal accounts (few followers, cheap fan-out), pull for celebrity accounts (too many followers to fan out on every post) — merged into one feed at read time. Solves the celebrity fan-out problem without paying pull's read cost for everyone. |
+| **Presence registry** | A lookup (`user_id → gateway_id`) recording which WebSocket gateway instance currently holds a given user's live connection, so a message can be routed to the *right* server in a fleet of many. |
+| **Sharding key / cross-shard query** | The column a table is partitioned on (here, `conversation_id` for messages, so one conversation's history lives on one shard). Querying *across* shards — e.g. "all messages for user X across every conversation" — requires fetching from many shards and joining in memory, which is slow and doesn't scale; a separate search index (Elasticsearch) sidesteps this. |
+| **GOP (Group of Pictures) chunking** | Splitting a raw video on independently-decodable frame boundaries so many transcode workers can process one upload in parallel — see [S12's terminology](../12-session/README.md#terminology) for the full media-pipeline vocabulary reused here. |
+
+## Requirements & estimation
+
+- **Functional** — post media; see a **feed** of friends' posts; **send/receive messages**; get **notified** of a friend's new post. A clean, minimal cut — appropriately so, given the breadth already implied by three feature areas.
+- **Non-functional** — feed **smooth and instantaneous**; **scalable**; **secure** media uploads; **fast reads**; **instantaneous** messaging. Correctly identifies "reads must be fast" as its own requirement, ahead of any design.
+- **Estimation** — 10M total users, 5M DAU (50%), 0.2 media posts/user/day (1 every 5 days), avg media size 50 MB → **5M × 0.2 × 50 MB = 50 TB/day** raw, ×3 replication → **150 TB/day**. Activity: 100 requests/user/day → **≈5,000 QPS**, **read:write ≈ 100:1**. Correctly ran the storage math against **DAU**, not total users — only people active that day can post that day, so DAU is the right population for a per-day-active rate.
+- **The numbers decided the read-heavy shape** — the 100:1 ratio directly produced "we need a CDN" and motivated the pre-computed feed cache; **150 TB/day** justified S3 tiering later in the scaling discussion.
+- **Schema drawn upfront** — `user`, `post`, `media`, `media_chunks` (renditions), `message`, and later `connections` (friend graph) sketched on the canvas during requirements.
+
+![Requirements canvas for a social media platform. The problem is to design a scalable social media platform that can handle millions of users posting, sharing, and interacting with content in real time, including a news feed, messaging, and notifications. Functional requirements list a user being able to post media, a user being able to see a feed containing posts from friends, a user being able to send and receive messages from friends, and notifications on a new post by a friend. Non-functional requirements list the feed being smooth and instantaneous, the system being scalable, media uploads being secure, reads being fast, and messaging being instantaneous. The estimations block assumes 10 million total users, 5 million daily active users at 50 percent, media posted per user per day of 0.2 meaning one post every 5 days, an average media size of 50 megabytes including short video and images, a total storage per day of 5 million daily active users times 0.2 times 50 megabytes equaling 50 terabytes, a total storage per day including 3x replication of 150 terabytes, an activity per user per day of 100 requests, a total throughput per day derived from 100 times 5 million divided by 24, a resulting throughput of 5000 queries per second, and a read to write ratio of 100 to 1. The schema block lists a user table with id, user_name, email, and date of birth, a post table with id, user_id, and created_at, a media table with id, created_at, and post_id, a media_chunks table with id, media_id, post_id, from, to, and sequence_id, a message table with id, sender_id, receiver_id, text, created_at, and media_id, and a connections table with id, user_id, friend_id, and created_at.](./diagrams/requirements.png)
+
+## The design produced
+
+![Architecture canvas produced in the interview, covering media, feed, and messaging. For media, a client posts through an API Gateway to a Post Service, which returns a signed S3 upload URL; the client uploads directly to AWS S3, which emits an upload-complete event into an Upload Event Queue read by Media Prechecks, which breaks the media into GOP chunks, handed to a Transcode Manager that assigns tasks to Transcode Workers with heartbeat-based dead-worker detection, producing an Upload File per rendition back into S3, which informs the Post Service. Reads of media go through a CDN in front of S3. The Post Service is backed by a Post Database with a primary writer, reader instance, and cache. For the feed, the Post Service informs a Feed Service Write, which reads the friend list from a GraphQL Database and user details from a Cache Users backed by a User Database, then writes through a Feed Queue into a Feed Cache holding user_id and post_id pairs; a Feed Service Read reads the feed cache, then fetches post-by-user details from the Post Service and Cache Post, merging pulled celebrity posts for large friend lists with pushed posts for small friend lists. The Post Service also informs a Notification Service. For messaging, Client 3 posts a message through a WebSocket API Gateway to a Message Writer Service, which writes to a Message Database with a primary writer, reader instance, and cache, and publishes to a Message Kafka Queue read by a Message Send Service, which checks a User Gateway Cache to see if the receiver is online; if online it delivers through the receiver's WebSocket API Gateway with an acknowledgment, and if offline it publishes to a Notification Queue read by a worker that sends push notifications via AWS SNS or Google FCM.](./diagrams/architecture.png)
+
+- **Media pipeline** — signed S3 URL upload → S3 event → Kafka ingest queue → pre-check worker (malformed-media check, GOP chunking) → Transcode Manager (heartbeat-based dead-worker detection, task reassignment) → Transcode Workers (per-rendition encode to MP4/MOV) → renditions written back to S3 → Post Service marks the post ready. The same crux built in [S12](../12-session/README.md), reused correctly.
+- **Feed — the hybrid, stated and defended** — Feed Service Write reads the poster's friend list from a **GraphQL database**, pulls friend details from a user cache, and **pushes** the new post into each friend's Feed Cache (`user_id, post_id` pairs). When challenged on a celebrity with millions of followers, the candidate switched to **pull-on-read** for large friend/follower counts — computing the feed at read time instead of fanning out — and merges both at Feed Service Read.
+- **Messaging** — sender → WebSocket Gateway (authN/authZ/rate limit) → Message Writer Service → **persist to Message DB** → Kafka → Message Send Service, which checks a **User Gateway Cache** for the receiver's connection; if online, delivers directly with an ack; if offline, routes to a Notification Queue → worker → **AWS SNS / Google FCM** push.
+- **Reads** — CDN in front of S3 for media; read-replica + cache in front of every database (Post, User, Message); a **pre-computed Feed Cache with TTL** so a feed read is a single cache lookup, not a fan-in query.
+- **Scaling & cost** — Message DB **sharded by `conversation_id`** (co-locates one conversation's history); the resulting cross-shard search problem (search across *all* of a user's conversations) solved with **Elasticsearch** instead of in-memory cross-shard joins; **S3 Standard for hot data, Glacier for cold** to control storage cost; **DLQ + monitoring** (queue depth, cache memory, service health/logs) named for the transcode pipeline specifically.
+
+## Scorecard
+
+| Axis | S12 | **S13** | Δ |
+|---|:--:|:--:|:--:|
+| Requirements Gathering | 7.0 | **8.0** | ▲ 1.0 |
+| Design Skills | 7.5 | **8.0** | ▲ 0.5 |
+| Problem-Solving | 7.0 | **7.0** | — |
+| Scalability & Trade-offs | 7.0 | **7.0** | — |
+| Communication | 7.5 | **7.0** | ▼ 0.5 |
+| **Overall** | 7.2 | **7.5** | ▲ 0.3 |
+
+> **The second session running that didn't regress on a brand-new hard-crux problem — and this one stacked three of them.** Requirements (▲1.0) and Design (▲0.5) both rose despite (or because of) the breadth: the numbers were decision-tied and the schema came early, and the architecture cleanly separated media/feed/messaging into distinct, correctly-connected services rather than blurring them together. Communication dipped slightly (▼0.5) — with three subsystems to narrate, the walkthroughs ran long and the interviewer's own note was "more concise and structured." Problem-Solving and Scale held flat at 7.0: real depth on each subsystem's defining decision (hybrid feed, conversation-sharding, DLQ), but — as both S12 and this session show — the *next* layer (consistency, CAP trade-offs, connection-tier scaling) stayed unprompted.
+
+## What lost points — and the fix
+
+| What I missed in the room | What a senior would say | Study |
+|---|---|---|
+| **Cache/DB consistency never came up** — what happens when the Feed Cache, Post Cache, or User Cache disagrees with its database? | State the staleness window explicitly: **write-through or invalidate-on-write** to the cache, with **TTL as the self-healing backstop** for whatever slips through. Say it in the same breath as "we add a cache." | [Caching](../../concepts/06-caching/caching.md) |
+| **CAP trade-offs stayed implicit** — a read-heavy, multi-service design like this has several paths with different consistency needs, and none were split out loud | Split it per path: **messages → CP** (never lose or duplicate a message); **feed reads → AP** (a few seconds of staleness is fine); **media metadata → CP for the publish gate, AP for view counters**. Naming the split is the senior signal, not just building the caches. | [Consistency Models](../../concepts/08-distributed-systems/consistency-models.md) |
+| **WebSocket horizontal scaling and session management left unaddressed** — the design has "a WebSocket Gateway" but not *how many*, or how a fleet of them stays routable | A stateless, autoscaled **gateway pool**, each holding a subset of live connections, with a **presence registry** (`user_id → gateway_id`) so the Message Send Service can route to the *specific* gateway instance holding the recipient — the same fix [S09](../09-session/README.md) landed on chat. | [Real-Time Communication](../../concepts/04-apis/realtime-communication.md) |
+| **Rate limiting stayed generic** — named as a Gateway responsibility with no shape | Multi-tier, per-endpoint limits (upload vs. read vs. message-send each need different budgets) held in a **config store**, cached with a short TTL — see [S07's recurring miss](../07-session/README.md) on the same topic. | [Databases](../../concepts/05-databases-and-storage/databases-fundamentals.md) |
+| **Security stopped at signed URLs** — no mention of data protection beyond the upload step | Name **encryption at rest** (S3 SSE, DB-level encryption) and **in transit** (TLS everywhere), plus **access-control policies** (can user A read user B's private message or post?) as first-class, not implied by "secure uploads." | [API Security](../../concepts/04-apis/api-security.md) |
+| **The `message` schema has no `conversation_id`**, but the sharding strategy discussed minutes later shards the Message DB *by* `conversation_id` | The schema and the scaling decision have to agree — add `conversation_id` to the `message` table (or derive it from `sender_id`/`receiver_id` for 1:1 chat) *before* proposing to shard on it. | [Sharding & Partitioning](../../concepts/05-databases-and-storage/sharding-and-partitioning.md) |
+
+## What went well
+
+- **Named and solved the celebrity fan-out problem unprompted-adjacent** — reached for a **hybrid push/pull feed** the moment the interviewer raised "millions of followers," rather than stalling on it the way earlier sessions stalled on their crux under similar pressure.
+- **Estimation decided the shape of the design** — the 100:1 read:write ratio and 150 TB/day storage figure directly produced the CDN, the pre-computed feed cache, and (later) the S3 tiering call.
+- **Schema drawn during requirements**, including a later-added `connections` table when the interviewer asked how the friend graph fit in — the fix arrived promptly, not defensively.
+- **Correctly reused the S12 transcode pipeline crux** — GOP chunking, heartbeat-based dead-worker detection and reassignment — rather than re-deriving it from scratch or leaving it thin.
+- **Sharded the Message DB by `conversation_id` with the trade-off named unprompted**: co-located history is fast, but cross-shard search is then expensive — and reached for **Elasticsearch** as the fix when pushed, rather than defending an in-memory cross-shard join.
+- **Correct instinct on the feed cache's durability**: a **distributed cache with replicas** (not a single node) for availability, but deliberately **not** backed by persistent storage — "older feeds don't matter," rebuild from source if lost, with **TTL** as the eviction mechanism. A clean, deliberate CP/AP-flavored call, even though it wasn't framed using CAP language.
+- **Proactive operational thinking, unprompted**: DLQ for failed transcode jobs, monitoring on **queue depth** and **cache memory size**, and **S3 Standard vs. Glacier** tiering by recency — the same senior-plus items S12 had to be told to add, volunteered here.
+- **A sharp, accurate closing observation**: recognized unprompted that the prompt bundles three separate system-design questions, and correctly predicted that a real 45–60 minute interview would only ask for one — showing calibrated self-awareness about depth vs. breadth trade-offs.
+
+---
+
+## The ideal design
+
+**The crux (×3):** this prompt is three systems sharing one user base, each with its own defining decision — the **media pipeline** must parallelize and fault-tolerate transcoding without blocking "the post is live"; the **feed** must avoid a fan-out blowup on high-follower accounts without sacrificing normal-account read speed; **messaging** must route a message to one specific live connection out of millions, and never lose it if that connection doesn't exist yet. A senior answer either negotiates which one to go deep on, or keeps all three cruxes explicit rather than letting the breadth dilute any one of them.
+
+### Ideal estimation (decision-tied)
+
+| Number | Value | Decision it forces |
+|---|---|---|
+| Media storage | 5M DAU × 0.2 posts/day × 50 MB ≈ 50 TB/day raw, ×3 → **150 TB/day** | Storage dominates cost → **S3 + CDN + tiering** are non-negotiable |
+| Read:write | **100:1** | Read-heavy across the board → cache-first reads, **pre-computed** feed, not read-time joins for normal accounts |
+| Fan-out cost | A celebrity with 10M followers × 1 write/follower per post = **10M writes for one post** | Push alone doesn't scale past a follower-count threshold → **hybrid push/pull is not optional** past a defined follower cutoff |
+| Concurrent connections | ~20% of 5M DAU messaging concurrently ≈ **1M live WebSocket connections** | Needs a **stateful connection tier sized separately** from the stateless services — the number [S08](../08-session/README.md) originally missed |
+| QPS | ≈**5,000 QPS** at 100 req/user/day | Confirms the design can run on a modest number of stateless service instances behind a load balancer; the connection tier is the real scaling axis, not this number |
+
+### Functional & non-functional requirements (the ideal cut)
+
+- **Functional** — post media (photo/video); a **feed** merging followed accounts; **1:1 and group messaging** with delivery/read receipts; **push notifications** for new posts, messages, and mentions; basic **discovery** (search users, search own messages).
+- **Non-functional** — the feed and message-send paths need **sub-second p99 latency**; message delivery needs **at-least-once with client-side dedup**, never silent loss; media durability for the **raw master**; **horizontal scalability of the WebSocket tier independent of the stateless services**; **encryption in transit and at rest** everywhere PII or private content is stored.
+
+### Ideal architecture
+
+![Architecture diagram for the ideal social media platform, split into three sections. In the media upload and transcode section, a poster requests an upload URL from a Post service, which writes a pending post row and returns a signed multi-part S3 URL; the poster uploads directly to a raw S3 bucket, which emits an upload-complete event into a Kafka ingest queue read by a pre-check worker that does malware scanning and GOP chunking, handing off to a transcode manager that heartbeats a worker pool and dead-letters exhausted tasks into a dead-letter queue with alerting; workers write renditions into a processed S3 bucket served by a CDN edge, and mark the post live back in the Post service, which emits a new-post event. In the feed section, a feed fan-out service reads the social graph database and either pushes the post into each follower's pre-computed feed cache for normal accounts or leaves it to be pulled at read time for celebrity accounts; a feed read service merges the pre-computed feed with pulled celebrity posts and serves the viewer, who also reads media from the CDN. In the messaging section, a sender sends a message through a stateless, autoscaled WebSocket gateway pool to a message writer that persists to a message database sharded by conversation_id before acking the sender, then publishes to Kafka; a delivery worker looks up the receiver's gateway in a presence registry mapping user id to gateway id and either delivers directly through the owning gateway to the receiver when online, or publishes to a notification queue that pushes through APNs, FCM, or SNS when offline; the message database is also indexed into Elasticsearch to support searching across conversations without cross-shard joins. A shared monitoring and alerting component watches queue depth, cache hit ratio, WebSocket gateway connection counts, and database replication lag across all three sections.](./diagrams/ideal-design.png)
+
+- **Media** — identical crux to [S12's ideal design](../12-session/README.md#ideal-architecture): signed upload → Kafka → pre-check/GOP-chunk → DAG-parallel transcode with heartbeats and a dead-letter path → CDN-fronted processed storage.
+- **Feed** — a **fan-out service** decides push vs. pull **per account, based on follower count**, not per request: below a threshold, push into every follower's pre-computed `feed_cache`; above it, leave the account's posts to be pulled and merged at read time. This bounds the worst-case write amplification to a configured constant regardless of a celebrity's actual follower count.
+- **Messaging** — a **stateless, autoscaled WebSocket gateway pool** (never a single instance) fronts live connections; a **presence registry** (`user_id → gateway_id`, heartbeat TTL) is the routing table that lets a Delivery Worker find the *one* gateway instance holding a specific recipient among millions of open sockets. **Persist-then-ack**: the message is durable in the sharded Message DB before the sender's client sees success, so a crash anywhere downstream never loses it.
+- **Search** — the Message DB's sharding key (`conversation_id`) is right for conversation history but wrong for cross-conversation search, so that query pattern gets **its own index** (Elasticsearch) rather than forcing the primary store to serve a query shape it wasn't sharded for.
+- **Observability** — one shared layer across all three subsystems: transcode queue depth, feed-cache hit ratio, WebSocket gateway connection counts (the signal that triggers scaling the connection tier), and database replication lag.
+
+### Database schema
+
+| Table | Fields | Note |
+|---|---|---|
+| `user` | `user_id` (PK), `username`, `email`, `dob` | |
+| `connections` | `id`, `user_id`, `friend_id`, `status`, `created_at` | The social graph — also carries the **follower-count** signal the feed fan-out service decides push-vs-pull on |
+| `post` | `post_id` (PK), `user_id`, `status` (`uploading → processing → live → failed`), `created_at` | Gates when a post appears in any feed |
+| `media_rendition` | `media_id`, `post_id`, `resolution`, `format`, `status` (`queued → processing → ready → failed`) | Same crux table as [S12](../12-session/README.md#database-schema) — one row per encoded output |
+| `message` | `message_id`, **`conversation_id`**, `sender_id`, `receiver_id`, `text`, `media_id`, `seq_no`, `created_at` | **`conversation_id` is the sharding key** — must exist on the row *before* proposing to shard by it (this session's schema omitted it) |
+| `feed_entry` *(ephemeral, cache-only)* | `user_id`, `post_id`, `ranked_at` | Never a durable table — TTL-evicted, rebuildable from `post` + `connections` on a cache loss |
+
+### Design trade-offs
+
+- **Push vs. pull is a per-account decision, not a per-request one** — deciding at read time whether to push or pull would require knowing every account's follower count on every post; deciding once per account (and re-evaluating only when follower count crosses the threshold) keeps the fan-out service's hot path simple.
+- **Persist-then-ack over ack-then-persist** — acking the sender before the message is durably written risks a "sent" message the recipient never receives on a crash; the extra write-before-ack latency is worth the durability guarantee for a messaging product.
+- **Shard the Message DB for conversation locality, index separately for cross-conversation search** — optimizing one store for both access patterns (fast single-conversation fetch *and* fast cross-conversation search) isn't possible with one sharding key; splitting the concern into a primary store + a search index is cheaper than forcing either pattern to fight the other's shard layout.
+- **Feed cache is deliberately non-durable** — a feed entry has a short useful lifetime; paying for durable storage and a rebuild-on-write path costs more than accepting "rebuild from source on the rare total cache loss."
+- **Differentiate encryption/access-control by content sensitivity** — a public post's media can sit behind a CDN with no per-request auth check; a private message's content needs per-request authorization and encryption at rest — treating both the same either over-secures the cheap path or under-secures the sensitive one.
+
+## Takeaways to drill
+
+1. **On a mega-prompt, name the scope trade-off out loud before designing** — "this is really three systems; do you want depth on one or breadth across all three?" is itself a senior signal, and it protects Communication from the "ran long across three subsystems" note this session got.
+2. **The hybrid-feed instinct now looks reliable** — reached and defended without stalling, on the first real test of it in this log. Keep it as a first-response reflex on any feed/social-graph prompt.
+3. **Consistency and CAP trade-offs are the next lever, and they're now the most consistently open gap** — say the per-path split (writes CP, feed/analytics reads AP) even when nobody asks; it's a two-sentence addition with outsized scoring weight.
+4. **WebSocket/connection-tier scaling needs its own explicit story on every real-time prompt** — a presence registry + stateless gateway pool, stated as the design, the way [S09](../09-session/README.md) landed it — not left as "add a WebSocket Gateway" with an implied single instance.
+5. **Keep the schema and the scaling decision in sync** — this session sharded by a column (`conversation_id`) that wasn't in its own schema. Whenever a partitioning key gets named out loud, check it's actually a column on the table being partitioned.
+
+→ Consolidated feedback across all sessions lives in the [practice tracker](../README.md). Rehearse with the [Opening Ritual](../opening-ritual.md) + [Answer Framework](../answer-framework.md) before the next mock.

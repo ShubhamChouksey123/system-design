@@ -1,0 +1,72 @@
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    classDef clientCls fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+    classDef edgeCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef mediaCls fill:#ffebee,stroke:#c62828,color:#b71c1c;
+    classDef feedCls fill:#fff3e0,stroke:#ef6c00,color:#7a3c00;
+    classDef msgCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef storeCls fill:#fff8e1,stroke:#f9a825,color:#795548;
+    classDef readCls fill:#e0f7fa,stroke:#00838f,color:#006064;
+    classDef opsCls fill:#eceff1,stroke:#546e7a,color:#263238;
+
+    subgraph MEDIA["Media upload and transcode"]
+        Poster([Poster]):::clientCls
+        PostSvc["Post service<br/>signed multi-part S3 URL<br/>writes pending post row"]:::edgeCls
+        RawS3[("Raw bucket - S3<br/>x3 replicated master")]:::storeCls
+        INQ["Ingest queue - Kafka"]:::mediaCls
+        PRE["Pre-check worker<br/>malware scan, GOP chunking"]:::mediaCls
+        TMGR["Transcode manager<br/>heartbeats workers, retries then<br/>DEAD-LETTERS a task"]:::mediaCls
+        WORK["Transcode worker pool<br/>autoscaled on queue depth<br/>encode per rendition"]:::mediaCls
+        DLQ[("Dead-letter queue + alert")]:::opsCls
+        PROCS3[("Processed bucket - S3<br/>renditions per post")]:::storeCls
+        CDN["CDN edge<br/>most media bytes served here"]:::readCls
+    end
+
+    subgraph FEED["Feed"]
+        FANOUT["Feed fan-out service<br/>HYBRID: push for normal accounts,<br/>pull for celebrity accounts"]:::feedCls
+        GRAPH[("Social graph DB<br/>connections, sharded by user_id")]:::storeCls
+        FEEDCACHE[("Feed cache - pre-computed<br/>list of post_id per user_id, TTL")]:::storeCls
+        FEEDREAD["Feed read service<br/>merges push feed + pulled celebrity posts"]:::feedCls
+        Viewer([Viewer]):::clientCls
+    end
+
+    subgraph MSG["Messaging"]
+        Sender([Sender]):::clientCls
+        WSGW["WebSocket gateway pool<br/>stateless, autoscaled, sticky only per-connection"]:::msgCls
+        PRESENCE[("Presence registry<br/>user_id -> gateway_id, heartbeat TTL")]:::storeCls
+        MWRITE["Message writer<br/>persist THEN ack the sender"]:::msgCls
+        MSGDB[("Message DB<br/>sharded by conversation_id")]:::storeCls
+        MQ["Kafka - message events"]:::msgCls
+        MSEND["Delivery worker<br/>routes to the owning gateway via presence"]:::msgCls
+        Receiver([Receiver]):::clientCls
+        NOTIFQ["Notification queue - Kafka<br/>offline receiver path"]:::msgCls
+        PUSH["APNs / FCM / SNS"]:::edgeCls
+        SEARCH[("Elasticsearch<br/>message search index, avoids cross-shard joins")]:::readCls
+    end
+
+    MON["Monitoring / alerting<br/>queue depth, cache hit ratio,<br/>gateway connection count, replication lag"]:::opsCls
+
+    Poster -->|"1 request upload URL"| PostSvc --> RawS3
+    RawS3 -->|"2 upload-complete event"| INQ --> PRE --> TMGR --> WORK
+    WORK -.->|"exhausted retries"| DLQ
+    WORK -->|"3 write renditions"| PROCS3 --> CDN
+    WORK -->|"4 mark post live"| PostSvc
+    PostSvc -->|"5 new post event"| FANOUT
+
+    FANOUT -->|"read friend/follower graph"| GRAPH
+    FANOUT -->|"push: write to each follower's feed"| FEEDCACHE
+    Viewer -->|"GET feed"| FEEDREAD
+    FEEDREAD -->|"read pre-computed feed"| FEEDCACHE
+    FEEDREAD -.->|"pull: fetch celebrity posts at read time"| PostSvc
+    CDN -->|"serve media"| Viewer
+
+    Sender -->|"send message"| WSGW --> MWRITE --> MSGDB
+    MWRITE --> MQ --> MSEND
+    MSEND -->|"look up receiver's gateway"| PRESENCE
+    MSEND -->|"online: deliver directly"| WSGW --> Receiver
+    MSEND -.->|"offline"| NOTIFQ --> PUSH -.-> Receiver
+    MSGDB -.->|"index for cross-conversation search"| SEARCH
+
+    TMGR -.-> MON
+    WSGW -.-> MON
+    MSGDB -.-> MON
