@@ -16,6 +16,24 @@
 
 Two crux problems hide under one prompt. First, the **transcoding pipeline**: a huge uploaded file has to become several resolutions and formats, fast and in parallel, without one slow step blocking the "video is live" promise — and without losing work if a worker dies mid-task. Second, **global low-latency delivery**: almost all bytes must leave a CDN edge, not the origin, which means deciding — dynamically, not by a fixed rule — which videos are worth caching there. This is the same shape as [S05's video pipeline](../05-session/README.md) (never fully explained back then) paired with the CDN discipline S05/S06/S08/S09 built up on the read side.
 
+## Terminology
+
+The domain words this write-up uses. Saying them out loud in the interview signals you know the space.
+
+| Term | Meaning |
+|---|---|
+| **GOP (Group of Pictures)** | A short, independently-decodable run of video frames (one full "key" frame plus the frames that reference it). Splitting the raw upload on GOP boundaries is what lets many workers transcode **one video in parallel** without corrupting a frame that depends on data outside its chunk. |
+| **Rendition** | One specific encoded output of a source video — a fixed combination of **resolution + bitrate + format/codec** (e.g. 480p MP4, 1080p WebM). One upload produces many renditions; the client picks between them as bandwidth changes. |
+| **Resolution** | The frame size, in pixels, of a rendition — shorthand as *vertical-pixel-count* + `p` (e.g. **480p** = 854×480, **720p** = 1280×720, **1080p** = 1920×1080, **4K/2160p** = 3840×2160). Higher resolution ≈ more detail but more bits per second, so more of everything downstream — encode time, storage, and egress bandwidth. A pipeline typically targets a small fixed ladder (e.g. 480p/720p/1080p) rather than an arbitrary size per video. |
+| **Format (container vs. codec)** | Two different things bundled under "format." The **codec** (e.g. H.264/AVC, VP9, AV1) is the compression algorithm that actually shrinks the video data; the **container** (e.g. MP4, WebM) is the file wrapper that packages the encoded video, audio, and metadata together. A rendition is really "codec inside container" — MP4 commonly wraps H.264, WebM commonly wraps VP9. Different devices/browsers support different codec-container pairs, which is why several formats get produced per rendition. |
+| **Bitrate** | How many bits of encoded video play per second (e.g. 5 Mbps) — the number that actually determines download speed needed, not resolution alone; two renditions at the same resolution can be encoded at different bitrates (quality vs. size trade-off), and the manifest can offer both. |
+| **Segment** | A short, fixed-length time slice of one rendition (a few seconds of video), the unit an HLS/DASH player actually requests over HTTP. A rendition is a sequence of segments. |
+| **Manifest** | The index file (HLS `.m3u8` / DASH `.mpd`) listing which renditions and segments exist and where to fetch them. The client reads it first, then requests segments. |
+| **Adaptive bitrate (ABR) streaming** | The client measures its own available bandwidth and switches renditions **mid-playback** by picking a different entry from the manifest — never a fixed quality for the whole watch. |
+| **Transcoding** | Re-encoding the raw upload into each target rendition — the CPU-heavy step the pipeline exists to parallelize and make fault-tolerant. |
+| **DAG (Directed Acyclic Graph) workflow** | The per-video processing plan expressed as a graph of dependent tasks (chunk → transcode each rendition → merge → thumbnail), so independent branches (e.g. two different renditions) run **in parallel** while dependent steps still wait on their inputs. |
+| **Dead-letter queue (DLQ)** | Where a task lands after failing its retry budget, so it stops silently looping or vanishing and instead becomes a visible, alertable, re-drivable failure. |
+
 ## Requirements & estimation
 
 - **Functional** — upload a video; process it in **minimum time** before it's viewable; stream to **any user globally**; serve **multiple resolutions and formats** for different devices/bandwidth. A clean, product-shaped cut — but narrow: **no video deletion, search/discovery, or recommendations** were named, and the interviewer flagged the gap explicitly.

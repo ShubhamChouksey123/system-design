@@ -31,6 +31,7 @@ Every session `README.md` MUST have these headings, in order:
 > intro blockquote — one honest paragraph: what this session shows + weakest areas
 <snapshot table>                 Problem · Focus · Overall · Weakest areas · Full transcript
 ## The problem                   verbatim prompt (blockquote) + what it really tests
+## Terminology                    optional — table of domain terms worth saying out loud in the room (see below)
 ## Requirements & estimation     what you produced — functional / non-functional / estimation + gaps; embed requirements diagram
 ## The design I produced         embed architecture diagram; bullet the components & flows
 ## Scorecard                     5-axis table vs the previous session, with Δ + a one-line note
@@ -43,6 +44,8 @@ Every session `README.md` MUST have these headings, in order:
 ```
 
 The five scored axes are fixed: **Requirements Gathering · Design Skills · Problem-Solving · Scalability & Trade-offs · Communication**, plus **Overall**. Verdict thresholds: **✅ Pass ≥ 7 · ⚠️ Borderline 5.5–6.9 · ❌ Needs work < 5.5**.
+
+**`## Terminology`** — add it whenever the problem has domain-specific vocabulary worth naming out loud in the room (a trading system's *order / order book / price-time priority*, a streaming platform's *GOP / rendition / manifest*). A two-column `Term | Meaning` table, placed right after `## The problem` and before `## Requirements & estimation`. Skip the section entirely on a problem with no real jargon (a CRUD-shaped app) rather than padding it out — it's optional, not a checklist item.
 
 ## 4. The **Ideal Design** section — mandatory contents
 
@@ -109,6 +112,7 @@ Block elements need a **blank line before and after**, or GitHub/MkDocs treat th
 ```
 □ Two files only: README.md (polished) + script.md (raw transcript)
 □ All required headings present, in order (§3)
+□ Terminology table added if the problem has real domain jargon worth naming (§3) — omitted, not left blank, otherwise
 □ Snapshot table + scorecard use the five fixed axes + Overall; verdict emoji matches the threshold
 □ Scores match the mock exactly (no rounding up); Δ vs previous session shown
 □ Every lost-point row has a concrete fix + a Study cross-link into concepts/
