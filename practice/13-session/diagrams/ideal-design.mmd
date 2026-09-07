@@ -11,12 +11,13 @@ flowchart LR
 
     subgraph MEDIA["Media upload and transcode"]
         Poster([Poster]):::clientCls
+        APIGW["API gateway<br/>authN + authZ + rate limiting"]:::edgeCls
         PostSvc["Post service<br/>signed multi-part S3 URL<br/>writes pending post row"]:::edgeCls
         RawS3[("Raw bucket - S3<br/>x3 replicated master")]:::storeCls
         INQ["Ingest queue - Kafka"]:::mediaCls
         PRE["Pre-check worker<br/>malware scan, GOP chunking"]:::mediaCls
-        TMGR["Transcode manager<br/>heartbeats workers, retries then<br/>DEAD-LETTERS a task"]:::mediaCls
-        WORK["Transcode worker pool<br/>autoscaled on queue depth<br/>encode per rendition"]:::mediaCls
+        RMGR["Resource manager<br/>heartbeats task workers, retries then<br/>DEAD-LETTERS a task"]:::mediaCls
+        TASKW["Task worker pool<br/>autoscaled on queue depth<br/>encode per rendition"]:::mediaCls
         DLQ[("Dead-letter queue + alert")]:::opsCls
         PROCS3[("Processed bucket - S3<br/>renditions per post")]:::storeCls
         CDN["CDN edge<br/>most media bytes served here"]:::readCls
@@ -32,41 +33,47 @@ flowchart LR
 
     subgraph MSG["Messaging"]
         Sender([Sender]):::clientCls
-        WSGW["WebSocket gateway pool<br/>stateless, autoscaled, sticky only per-connection"]:::msgCls
+        WSGW["WebSocket gateway pool<br/>authN + authZ + rate limiting<br/>stateless, autoscaled, sticky only per-connection"]:::msgCls
         PRESENCE[("Presence registry<br/>user_id -> gateway_id, heartbeat TTL")]:::storeCls
         MWRITE["Message writer<br/>persist THEN ack the sender"]:::msgCls
-        MSGDB[("Message DB<br/>sharded by conversation_id")]:::storeCls
+        MSGDB[("Message DB<br/>encrypted at rest, sharded by conversation_id<br/>access checked against conversation_participant")]:::storeCls
         MQ["Kafka - message events"]:::msgCls
         MSEND["Delivery worker<br/>routes to the owning gateway via presence"]:::msgCls
         Receiver([Receiver]):::clientCls
         NOTIFQ["Notification queue - Kafka<br/>offline receiver path"]:::msgCls
-        PUSH["APNs / FCM / SNS"]:::edgeCls
         SEARCH[("Elasticsearch<br/>message search index, avoids cross-shard joins")]:::readCls
     end
 
+    RLCFG[("Rate-limit config store<br/>per-endpoint / per-tier limits, cached short TTL")]:::opsCls
+    NOTIFSVC["Notification service<br/>fans out new-post AND offline-message pushes"]:::edgeCls
+    PUSH["APNs / FCM / SNS"]:::edgeCls
     MON["Monitoring / alerting<br/>queue depth, cache hit ratio,<br/>gateway connection count, replication lag"]:::opsCls
 
-    Poster -->|"1 request upload URL"| PostSvc --> RawS3
-    RawS3 -->|"2 upload-complete event"| INQ --> PRE --> TMGR --> WORK
-    WORK -.->|"exhausted retries"| DLQ
-    WORK -->|"3 write renditions"| PROCS3 --> CDN
-    WORK -->|"4 mark post live"| PostSvc
+    Poster --> APIGW -->|"1 request upload URL"| PostSvc --> RawS3
+    APIGW -.->|"check limit"| RLCFG
+    RawS3 -->|"2 upload-complete event"| INQ --> PRE --> RMGR --> TASKW
+    TASKW -.->|"exhausted retries"| DLQ
+    TASKW -->|"3 write renditions"| PROCS3 --> CDN
+    TASKW -->|"4 mark post live"| PostSvc
     PostSvc -->|"5 new post event"| FANOUT
 
     FANOUT -->|"read friend/follower graph"| GRAPH
     FANOUT -->|"push: write to each follower's feed"| FEEDCACHE
+    FANOUT -->|"6 notify followers of new post"| NOTIFSVC
     Viewer -->|"GET feed"| FEEDREAD
     FEEDREAD -->|"read pre-computed feed"| FEEDCACHE
     FEEDREAD -.->|"pull: fetch celebrity posts at read time"| PostSvc
     CDN -->|"serve media"| Viewer
 
-    Sender -->|"send message"| WSGW --> MWRITE --> MSGDB
+    Sender --> WSGW --> MWRITE --> MSGDB
+    WSGW -.->|"check limit"| RLCFG
     MWRITE --> MQ --> MSEND
     MSEND -->|"look up receiver's gateway"| PRESENCE
     MSEND -->|"online: deliver directly"| WSGW --> Receiver
-    MSEND -.->|"offline"| NOTIFQ --> PUSH -.-> Receiver
+    MSEND -.->|"offline"| NOTIFQ --> NOTIFSVC
+    NOTIFSVC --> PUSH -.-> Receiver
     MSGDB -.->|"index for cross-conversation search"| SEARCH
 
-    TMGR -.-> MON
+    RMGR -.-> MON
     WSGW -.-> MON
     MSGDB -.-> MON
