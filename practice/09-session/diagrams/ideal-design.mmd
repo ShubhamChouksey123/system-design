@@ -32,6 +32,7 @@ flowchart LR
         FANOUT["Other consumers<br/>unread counts · search index · analytics"]:::svcCls
         MQ{{"Per-gateway topics / pub-sub<br/>route message → owning gateway"}}:::busCls
         PUSH["Push service<br/>AWS SNS / Google FCM for offline recipients"]:::svcCls
+        RECEIPTS{{"Kafka topic: receipts<br/>SEPARATE from messages - higher volume in groups,<br/>loss-tolerant, short retention"}}:::busCls
     end
 
     subgraph DATA[Durable stores]
@@ -69,7 +70,16 @@ flowchart LR
     GW -->|"11 push WS frame"| Recv
     MQ -.->|"offline → notify"| PUSH
     PUSH -.->|"wake device"| Recv
-    Recv -.->|"12 delivered / read ack → advance cursor"| CURSOR
+    Recv -.->|"12 delivered / read ack → advance own cursor"| CURSOR
+
+    %% ---------- receipt: same pipeline, reversed direction (12a-12f) ----------
+    Recv -->|"12a ack via WS: delivered or read"| GW
+    GW -->|"12b emit receipt event message_id, status"| RECEIPTS
+    RECEIPTS -->|"12c consume - same worker, same routing logic"| WORKER
+    WORKER -->|"12d look up ORIGINAL SENDER's gateway"| REG
+    WORKER -->|"12e publish to sender's owning gateway"| MQ
+    MQ -->|"12f online → deliver receipt"| GW
+    GW -->|"12g push tick update"| Sender
 
     %% ---------- reconnect + history read (scroll back) ----------
     Recv -->|"R1 reconnect / scroll: load since seq_no"| GW
