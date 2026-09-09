@@ -73,16 +73,24 @@ Grouped by topic.
 
 # Case Studies — "Design X"
 
-Biggest structural gap. Run each through `practice/answer-framework.md` (→ `practice/` or a new `03-case-studies/`).
+Cross-checked against `practice/README.md`'s 13 logged sessions (see the tracker's own ["How to Improve" plan](../practice/README.md#how-to-improve) for the re-solve backlog on problems already attempted). **Already run** (mark done, don't re-list as backlog — re-attempts belong in the re-solve plan above, not here):
 
-- [x] URL shortener *(session 01)*
-- [ ] Rate limiter
-- [ ] Chat / WhatsApp
-- [ ] News feed
-- [ ] Notification system
-- [ ] Search autocomplete / typeahead
-- [ ] Web crawler
-- [ ] YouTube / video streaming
-- [ ] Google Drive / file storage
-- [ ] Nearby friends / proximity service
-- [ ] Key-value store
+- [x] URL shortener → S01 *(re-solve: none needed, S01 was the only pass at this one but it's low-stakes)*
+- [x] Rate limiter → S07 *(⚠️ 6.0 — a good re-solve candidate; see practice tracker)*
+- [x] Chat / WhatsApp → S08 (⚠️ 6.5) → S09 re-solve (✅ 7.5)
+- [x] YouTube / video streaming → S12 (✅ 7.2)
+- [x] News feed *(as a component, not standalone)* → built inside S06's MVP feed and S13's hybrid push/pull feed (✅ 7.5) — the celebrity fan-out crux is now a banked strength; a **standalone** feed-only session isn't high-value anymore
+- [x] Multi-channel notification system, standalone → S14 (⚠️ 7.0) — per-provider fault isolation and circuit breakers landed; priority tiers, ordering, and concrete Kafka partition/consumer-scaling math didn't — good re-solve candidate
+
+**Not yet attempted — prioritized by which *new* crux each tests** (the log's diminishing-returns problem: feed/messaging/media-pipeline cruxes are now well-drilled across S09–S13; the next-highest-leverage sessions are ones that force a crux this log has *never* faced):
+
+- [ ] **Google Drive / cloud file storage** — new crux: **file versioning + diff/delta sync** (block-level chunking so editing a large file doesn't re-upload it whole), **folder-tree metadata** (a recursive structure, not a flat table), and **conflict resolution** for concurrent edits from multiple devices. Shares the upload/CDN plumbing from S12 but the sync/versioning crux is untested.
+- [ ] **Personalized recommendation service** (e.g. "Design a feed/product ranking system") — new crux: **offline vs. online split** (batch-trained candidate generation + a low-latency real-time ranking/scoring path), a **feature store**, and cold-start handling. This log has never touched an ML-adjacent system; it's a distinct interview archetype at senior/staff level, especially at a company like Google.
+- [ ] **Monitoring / observability platform** (Datadog / New Relic style) — new crux: **high-cardinality time-series ingestion at extreme write volume**, **downsampling/rollup strategy** (can't keep raw resolution forever), and an **alerting rules engine** evaluating thresholds over sliding windows. Directly closes the `concepts/09-reliability-and-operations/observability.md` gap this log's own Action Item #16 keeps citing as thin — this session would let you *design* the very topic that's been dinged for not being named in S10/S12/S13.
+- [ ] **Distributed job scheduler / cron** (e.g. "Design a task scheduler like Airflow/Cron-as-a-service") — new crux: **exactly-once trigger** despite multiple scheduler replicas (leader election), and DAG-based dependency scheduling. Closes the `concepts/08-distributed-systems` "Consensus & leader election" gap that's currently a `*(todo)*` row with zero session coverage.
+- [ ] **Ad click / impression counting & fraud detection** — new crux: **exactly-once counting at extreme write throughput** with late/duplicate event handling (watermarks), distinct from every prior "cache a counter" pattern in this log because correctness *is* the product (billing depends on it). Also the log's first real OLAP/analytics-pipeline design.
+- [ ] **Ride-sharing / proximity matching** (Uber-style, or "nearby friends") — new crux: **geospatial indexing** (geohash / quadtree / S2) for "who's near me" queries, plus real-time driver-rider matching under a moving-target constraint. Closes the `concepts/05-databases-and-storage` "Geospatial indexing" `*(todo)*` gap — currently zero session coverage.
+- [ ] **Distributed key-value store** (Dynamo/Redis-clone style — the infra system itself, not an app that merely *uses* one) — new crux: **consistent hashing with virtual nodes, replication factor, quorum reads/writes, and read-repair/anti-entropy** as the entire point of the design, not a one-line mention. The log has used Redis/Cassandra as a component in nearly every session but never designed the store itself.
+- [ ] **Payment system / ledger** (Stripe-style, as its own dedicated crux, not a feature bolted onto e-commerce) — new crux: **double-entry ledger correctness**, idempotency keys end-to-end, and reconciliation against a payment processor's async webhooks. Payments have been touched shallowly in S02–S04 and flagged as a recurring silent gap (Action Item #9) but never designed as the primary system.
+- [ ] **Search autocomplete / typeahead** — new crux: a **trie or prefix-index** structure with ranking, and a write path (popular-query promotion) decoupled from the read path. Smaller in scope than the others above — good as a quick, focused session rather than a big one.
+- [ ] **Web crawler** — new crux: **politeness/crawl-rate scheduling per domain**, dedup at web-scale (Bloom filters — another currently-`*(todo)*` concept gap), and a URL-frontier priority queue. Good pairing with the Bloom Filters concept doc once it's written.
