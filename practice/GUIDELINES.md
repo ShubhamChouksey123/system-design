@@ -59,7 +59,9 @@ This is the reference answer and the reason the page has lasting value. It MUST 
 | **Ideal architecture — Mermaid diagram** | A **Mermaid `.mmd`** diagram of the target design (§7), embedded as a PNG. Separate read vs write flows; label every edge with data + protocol. This is required, not optional. |
 | **Component walk-through** | Short prose/bullets tracing the main flows (a plain-language "packed room" analogy is welcome — see S04). |
 | **Database schema** | A table of the tables — `Table \| Fields \| Note` — with keys, the state machine (if any), and the **crux table** called out (e.g. `progress`, `orders`, `bids`). |
+| **Storage choices — which engine for which store** | A schema names the tables; it doesn't say what they run on. For **every** store in the design (not just the crux one), name the **category** (relational / wide-column NoSQL / in-memory KV / graph / search index / object storage) **and why that category, not another**, tied to its access pattern — e.g. `user` → relational (small structured rows, key lookups); a presence registry or feed cache → in-memory KV with TTL (ephemeral, ranked); a message store → wide-column NoSQL (high-volume ordered writes under one partition key). "We'll use a database" / "we'll cache it" with no named engine is incomplete — see [S13](./13-session/README.md#storage-choices--which-engine-for-which-store) for the worked example. |
 | **Design trade-offs** | The senior signal: for each major decision, **the choice → the alternatives → why this one** (and when you'd switch). Split consistency per path (CP write / AP read) where it applies. |
+| **Logging, Monitoring & Alerts** | **Name the concrete signals, not the word "monitoring."** A short list of specific, alertable metrics for *this* design — e.g. **DLQ depth**, **cache hit ratio**, **consumer lag**, **error rate per dependency**, **circuit-breaker-open duration**, **replication lag** — each paired with what triggers an alert. "Logging, monitoring, and alerts" as a bare requirement with no named signal is half-credit (see [S14](./14-session/README.md#what-lost-points--and-the-fix)); this sub-part is where it gets made concrete. |
 
 An "architecture at a glance" `Layer \| Component \| Store` table is a good companion to the diagram but does not replace it.
 
@@ -117,7 +119,7 @@ Block elements need a **blank line before and after**, or GitHub/MkDocs treat th
 □ Scores match the mock exactly (no rounding up); Δ vs previous session shown
 □ Every lost-point row has a concrete fix + a Study cross-link into concepts/
 □ Ideal Design section is self-contained and has ALL of §4:
-    framing · ideal estimation · functional + non-functional reqs · Mermaid diagram · schema · trade-offs
+    framing · ideal estimation · functional + non-functional reqs · Mermaid diagram · schema · storage choices (engine + why, per store) · trade-offs · logging/monitoring/alerts (named signals, not the bare word "monitoring")
 □ Ideal-design diagram is Mermaid (.mmd) rendered to a same-named .png at ≥5× — ≥6× if wide/dense, ~4000+ px longest edge (§7)
 □ Every number ties to a decision (§6)
 □ Diagram alt text is plain (no parentheses/brackets); every box is wired

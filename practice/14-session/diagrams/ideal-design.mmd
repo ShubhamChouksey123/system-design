@@ -1,0 +1,96 @@
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    classDef clientCls fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+    classDef edgeCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef coreCls fill:#ffebee,stroke:#c62828,color:#b71c1c;
+    classDef spineCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef storeCls fill:#fff8e1,stroke:#f9a825,color:#795548;
+    classDef readCls fill:#e0f7fa,stroke:#00838f,color:#006064;
+    classDef opsCls fill:#eceff1,stroke:#546e7a,color:#263238;
+
+    Billing([Billing service]):::clientCls
+    Promo([Promotion service]):::clientCls
+
+    API["Notification API<br/>authN + per-client rate limit<br/>idempotency check first"]:::edgeCls
+    IDEMP[("Idempotency cache<br/>idempotency_key -> notification_id, TTL 24h<br/>fallback: durable log on cache miss")]:::storeCls
+    PREF[("User preference / unsubscribe cache<br/>Redis, DB reader fallback on miss")]:::storeCls
+    RLCFG[("Per-user + per-channel rate-limit config<br/>data, not code - hot-reloadable")]:::storeCls
+
+    CLASSIFY["Priority classifier<br/>routes by channel AND priority tier<br/>transactional/OTP vs marketing/best-effort"]:::coreCls
+
+    subgraph SMS["SMS - isolated per priority"]
+        SMSHI{{"sms.high topic<br/>partitioned by user_id"}}:::spineCls
+        SMSLO{{"sms.low topic<br/>partitioned by user_id"}}:::spineCls
+        SMSWORK["SMS delivery workers<br/>fetch template, fill fields,<br/>call provider, retry + backoff"]:::coreCls
+        SMSCB["Circuit breaker - Twilio"]:::opsCls
+        Twilio["Twilio"]:::edgeCls
+    end
+
+    subgraph EMAIL["Email - isolated per priority"]
+        EMHI{{"email.high topic<br/>partitioned by user_id"}}:::spineCls
+        EMLO{{"email.low topic<br/>partitioned by user_id"}}:::spineCls
+        EMWORK["Email delivery workers"]:::coreCls
+        EMCB["Circuit breaker - SendGrid"]:::opsCls
+        SendGrid["SendGrid"]:::edgeCls
+    end
+
+    subgraph PUSH["Push - isolated per priority"]
+        PUHI{{"push.high topic<br/>partitioned by user_id"}}:::spineCls
+        PULO{{"push.low topic<br/>partitioned by user_id"}}:::spineCls
+        PUWORK["Push delivery workers"]:::coreCls
+        PUCB["Circuit breaker - APNs/FCM"]:::opsCls
+        APNs["APNs / FCM"]:::edgeCls
+    end
+
+    TEMPLATE[("Template cache<br/>rendering rules per channel")]:::storeCls
+    FALLBACK["Fallback policy<br/>e.g. OTP: SMS then email on failure"]:::coreCls
+    DLQ[("Dead-letter queue<br/>per channel, after N retries + alert")]:::opsCls
+
+    LOG[("Notification log<br/>append-only: queued/sent/delivered/failed")]:::storeCls
+    EVENTS{{"Delivery + engagement events<br/>Kafka"}}:::spineCls
+    ANALYTICS["Analytics service<br/>delivery rate, open/click, unsubscribe trends"]:::readCls
+    MON["Monitoring / alerting<br/>DLQ depth, breaker-open duration,<br/>per-provider failure rate, consumer lag"]:::opsCls
+
+    Billing --> API
+    Promo --> API
+    API -->|"check dedup"| IDEMP
+    API -->|"check subscribed"| PREF
+    API -.->|"check budget"| RLCFG
+    API --> CLASSIFY
+
+    CLASSIFY --> SMSHI
+    CLASSIFY --> SMSLO
+    CLASSIFY --> EMHI
+    CLASSIFY --> EMLO
+    CLASSIFY --> PUHI
+    CLASSIFY --> PULO
+
+    SMSHI --> SMSWORK
+    SMSLO --> SMSWORK
+    SMSWORK -->|"fetch"| TEMPLATE
+    SMSWORK --> SMSCB --> Twilio
+    SMSWORK -.->|"exhausted retries"| DLQ
+    SMSWORK -.->|"failure - check policy"| FALLBACK
+    FALLBACK -.->|"reroute to email"| EMHI
+
+    EMHI --> EMWORK
+    EMLO --> EMWORK
+    EMWORK -->|"fetch"| TEMPLATE
+    EMWORK --> EMCB --> SendGrid
+    EMWORK -.->|"exhausted retries"| DLQ
+
+    PUHI --> PUWORK
+    PULO --> PUWORK
+    PUWORK -->|"fetch"| TEMPLATE
+    PUWORK --> PUCB --> APNs
+    PUWORK -.->|"exhausted retries"| DLQ
+
+    SMSWORK --> LOG
+    EMWORK --> LOG
+    PUWORK --> LOG
+    LOG --> EVENTS --> ANALYTICS
+
+    DLQ -.-> MON
+    SMSCB -.-> MON
+    EMCB -.-> MON
+    PUCB -.-> MON
