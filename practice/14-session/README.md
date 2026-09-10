@@ -112,7 +112,7 @@ The crux isn't sending one notification — it's sending millions across **three
 - **Fault isolation, unchanged from the session's own design** — one circuit breaker per provider, one topic-pair per channel, so an outage on one provider never touches another channel's delivery.
 - **Fallback as an explicit policy, not a blanket rule** — a failed send re-enters *another channel's high-priority topic* only when the notification type's policy says so (an OTP, yes; a marketing email bounced, no) — configurable per notification type, not automatic for everything.
 - **Idempotency backed by a cache with a durable fallback** — the fast path is a cache check; on a cache miss, fall back to a lookup in the durable Notification Log rather than risk a double-send during a cache outage.
-- **Observability with named triggers** — DLQ depth, circuit-breaker-open duration, per-provider failure rate, and consumer lag are each a specific, alertable signal, not a generic "monitoring" box.
+- **Observability with named triggers** — see the dedicated Logging, Monitoring & Alerts section below.
 
 ### Database schema
 
@@ -120,9 +120,26 @@ The crux isn't sending one notification — it's sending millions across **three
 |---|---|---|
 | `notification_request` | `notification_id` (PK), `idempotency_key` (unique), `user_id`, `channel`, `priority`, `template_id`, `custom_fields` (JSON), `status` (`queued → sent → delivered → failed`), `created_at` | The durable record behind the idempotency cache — a cache miss falls back to a lookup here |
 | `user_preference` | `user_id`, `channel`, `subscribed` (bool), `updated_at` | Checked on every send; the unsubscribe requirement lives here, not scattered across services |
-| `template` | `template_id`, `channel`, `body`, `variables` (JSON) | One row per template per channel; cached in front, this is the source of truth |
+| `template_metadata` | `template_id` (PK), `channel`, `s3_key`, `active_version`, `variables` (JSON), `updated_at` | Points at the template **body**, which lives in object storage, not in this row — see Storage choices below |
 | `notification_log` | `notification_id` (FK), `channel`, `provider`, `attempt_count`, `status`, `updated_at` | Append-only outcome history — what the Analytics Service and the DLQ both read from |
 | `dead_letter` | `notification_id` (FK), `channel`, `reason`, `failed_at` | One row per exhausted-retry event, per channel |
+
+### Storage choices — which engine for which store
+
+The actual session named "User Cache," "Rate Limit Cache," "Memory cache," and a "User DB Reader instance" without ever saying what category each runs on beyond "a cache" or "a database" — worth being explicit, because the right engine differs store by store:
+
+| Store | Category | Example tech | Why this category, not another |
+|---|---|---|---|
+| `notification_request` | **Wide-column NoSQL / KV** | DynamoDB / Cassandra, keyed by `notification_id`, with `idempotency_key` as a lookup index | Write-heavy at burst (thousands/sec during a campaign), simple key-based access (insert on send, occasional status update) — the classic wide-column shape, and one that scales elastically for a traffic spike a relational store's connection pool would choke on |
+| `user_preference` | **Relational (RDBMS)** | PostgreSQL — likely part of the broader User service's own DB | Small, structured rows (`user_id`, `channel`, `subscribed`), simple key lookups, infrequent writes (an opt-out is rare relative to sends) — no benefit from NoSQL's flexibility here |
+| Template **body** | **Object storage**, versioned | AWS S3, key `templates/{channel}/{template_id}/{version}.html`, S3 versioning on | A template body (HTML/MJML with embedded styling, sometimes images) is exactly the blob shape S3 is built for — large-ish, read-heavy, almost never written, and S3's native **object versioning gives free rollback** without a bespoke version column. Storing it as a TEXT column in an RDBMS works at small scale but bloats table/backup size and gives up that built-in versioning. |
+| Template **metadata** (`template_metadata`) | **Relational (RDBMS) or small KV**, source of truth for *which* version is active | PostgreSQL or DynamoDB — `template_id → s3_key, active_version` | A tiny, frequently-*read*, rarely-*written* pointer table; small enough that either category works, chosen mainly to sit next to whatever else the Notification Service already queries |
+| Template **cache** (the session's own "Memory cache") | **In-process / Redis, pulled at startup** | Workers pull all active template bodies from S3 at boot, cache in memory (or Redis if shared across many worker instances), refresh on an **S3-event-driven invalidation** rather than a blind poll | Templates change rarely, so pulling once at startup and invalidating only on an actual update avoids re-fetching from S3 on every send while still picking up a template edit within seconds, not a stale TTL window |
+| `notification_log` | **Wide-column NoSQL** | Cassandra / DynamoDB, partitioned by `notification_id` or `channel` | Append-only, high-volume outcome history — the same append-heavy, key-based shape as `notification_request`; analytics rollups (delivery rate, engagement trends) stream out of this into a separate OLAP store rather than querying it directly |
+| `dead_letter` | Same **wide-column NoSQL** family, co-located with `notification_log` | Cassandra / DynamoDB | Low volume relative to the main log, but the same access shape (key lookup by `notification_id`) — no reason to introduce a second storage technology for it |
+| Idempotency cache, User Cache, rate-limit config | **In-memory KV, TTL-backed** | Redis | Every one of these is a fast, ephemeral lookup on the hot send path (`idempotency_key`, `user_id`, `client:endpoint`) — exactly Redis's shape; each has a durable fallback (the tables above, or a small config table for rate limits) for a cache-miss or full cache outage |
+
+The pattern: **wide-column NoSQL for anything append-heavy and burst-prone** (the notification and outcome records), **relational for small, slow-changing, structured data** (preferences, template metadata), **object storage for large, versioned, read-heavy blobs** (template bodies), and **Redis/in-process caches for every hot-path lookup**, each backed by one of the durable stores above so a cache outage degrades rather than breaks the send path.
 
 ### Design trade-offs
 
@@ -131,6 +148,19 @@ The crux isn't sending one notification — it's sending millions across **three
 - **Burst absorption over strict peak sizing** — sizing consumers to the smoothed "2× average" peak works for steady traffic but collapses under a real campaign send; the low-priority consumer pool needs autoscaling headroom (or a bounded backlog with a burst-absorbing partition count) sized to a burst scenario, not the daily average.
 - **Idempotency cache with a durable fallback, not cache-only** — a pure cache-based dedup check risks a double-send if the cache is unavailable during a retry storm; falling back to the durable `notification_request` table on a cache miss trades a slower dedup check for correctness during exactly the failure window it matters most.
 - **Delivery rate over latency, kept as reasoned in the room** — a few seconds of delay is invisible to a user; a dropped notification isn't. No change from the session's own (correct) answer here.
+- **Template body in versioned object storage, metadata in a small pointer table** — the session put the whole template (body included) in a relational store fronted by a memory cache; splitting the large, rarely-written, read-heavy **body** into S3 (versioned, so rollback is free) from a tiny **metadata** row (`template_id → active s3_key/version`) keeps the RDBMS small and gives template edits a built-in audit trail without a bespoke version column. Workers pull active bodies from S3 at boot and refresh on an **S3-event-driven cache invalidation**, not a blind poll — a template change propagates in seconds instead of waiting out a TTL.
+
+### Logging, Monitoring & Alerts
+
+"Logging, monitoring, and alerts" was named as a requirement in the room and never made concrete — here's what that actually looks like, signal by signal:
+
+| Signal | Alert threshold | Why it matters |
+|---|---|---|
+| **DLQ depth**, per channel | Growing for more than ~5 minutes, or > 100 messages | A few dead-lettered messages is normal retry noise; sustained growth means a provider (or a template bug) is systemically broken, not just flaky |
+| **Circuit-breaker-open duration**, per provider | Open for more than ~10 minutes | A brief open-then-recover is the pattern working as designed; an extended open means a human decision is needed — activate the fallback channel, or page the provider's status page |
+| **Per-provider failure rate** | > 5% over a rolling 5-minute window | Catches a degrading provider *before* it trips the breaker's harder threshold — an early warning, not a hard failure |
+| **Consumer lag**, per topic | Lag growing faster than the production rate for more than ~2 minutes | The burst-not-absorbed signal — and because topics are split by channel × priority, the specific topic that's lagging tells you exactly which channel or tier is under-provisioned |
+| **Unsubscribe-rate spike** | More than ~2× the rolling baseline in an hour | An operational signal, not just an engineering one — usually means a campaign's content, frequency, or targeting went wrong, not a system failure |
 
 ## Takeaways to drill
 
