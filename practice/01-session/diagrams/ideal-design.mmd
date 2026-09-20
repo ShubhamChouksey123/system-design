@@ -1,0 +1,42 @@
+flowchart LR
+    classDef write fill:#ffe0e0,stroke:#c0392b,color:#000
+    classDef read fill:#e0f0ff,stroke:#2471a3,color:#000
+    classDef analytics fill:#e8f8f5,stroke:#117864,color:#000
+
+    Client[Client]
+    Gateway[API Gateway with AuthN and RateLimit]
+
+    WriteSvc[URL Write Service]:::write
+    KeyGen[Snowflake ID Generator then base62 encode with a permutation mask]:::write
+    UrlDBPrimary[(URL DB Primary)]:::write
+    CleanupJob[Expiry Cleanup Job]:::write
+
+    CDN[(CDN edge cache for cacheable redirects)]:::read
+    ReadSvc[URL Read Service]:::read
+    Cache[(Redis Cache Aside)]:::read
+    UrlDBReplica[(URL DB Read Replica)]:::read
+
+    Kafka[(Kafka Click Events Topic)]:::analytics
+    AnalyticsConsumer[Analytics Consumer]:::analytics
+    AnalyticsStore[(Analytics Store OLAP)]:::analytics
+
+    Client -->|POST /urls with longUrl and optional custom alias| Gateway
+    Gateway --> WriteSvc
+    WriteSvc -->|1 request a unique id| KeyGen
+    KeyGen -->|2 return base62 short key| WriteSvc
+    WriteSvc -->|3 insert short_key long_url expires_at| UrlDBPrimary
+    UrlDBPrimary -->|replication| UrlDBReplica
+    WriteSvc -->|return the shortUrl| Client
+
+    Client -->|GET short key| CDN
+    CDN -->|cached permanent link served directly no backend hit| Client
+    CDN -->|cache miss or non cacheable link| Gateway
+    Gateway --> ReadSvc
+    ReadSvc -->|1 check cache| Cache
+    Cache -.cache miss.-> UrlDBReplica
+    ReadSvc -->|301 or 302 redirect| Client
+    ReadSvc -.emit click event fire and forget.-> Kafka
+    Kafka --> AnalyticsConsumer --> AnalyticsStore
+
+    CleanupJob -->|sweep expired or stale urls| UrlDBPrimary
+    CleanupJob -->|evict expired keys| Cache

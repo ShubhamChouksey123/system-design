@@ -1,0 +1,87 @@
+flowchart LR
+    classDef read fill:#e0f0ff,stroke:#2471a3,color:#000
+    classDef write fill:#ffe0e0,stroke:#c0392b,color:#000
+    classDef payment fill:#fff3cd,stroke:#b7950b,color:#000
+    classDef media fill:#e8f8f5,stroke:#117864,color:#000
+
+    Client[Client guest or owner]
+    Admin[Admin or merchant]
+    Gateway[API Gateway with AuthN AuthZ and RateLimit]
+    NotifSvc[Notification Service]
+
+    SearchSvc[Search Service]:::read
+    SearchIndex[(AWS Elasticsearch Search Index)]:::read
+    PropertyReadSvc[Property Read Service]:::read
+    PropertyCache[(Property Cache Redis)]:::read
+    PropertyReplica[(Property DB Read Replica)]:::read
+
+    BookingSvc[Booking Service]:::write
+    RedisLock[(Redis Distributed Lock per property and night TTL bound to hold)]:::write
+    BookingNightCal[(Booking Night Calendar Table)]:::write
+    BookingDBPrimary[(Booking DB Primary)]:::write
+    BookingDBReplica[(Booking DB Read Replica)]:::write
+    BookingCache[(Booking Cache Redis)]:::write
+    Reaper[Hold Expiry Reaper Job]:::write
+
+    PaymentSvc[Payment Service]:::payment
+    PaymentDB[(Payment DB)]:::payment
+    ExtPay[External Payment Provider Paypal]:::payment
+
+    PropertyWriteSvc[Property Write Service]:::write
+    PropertyDBPrimary[(Property DB Primary)]:::write
+    CDC[Debezium reads database WAL]
+    IndexKafka[(Kafka CDC Topic)]
+    IndexWorker[Search Index Sync Worker]
+    BulkKafka[(Kafka Bulk Update Topic)]
+    BulkWorker[Bulk Update Worker]
+
+    MediaSvc[Media Upload Service]:::media
+    S3[(AWS S3)]:::media
+    Breaker[Chunk Breaker Service]:::media
+    MediaKafka[(Kafka Media Topic)]:::media
+    TranscodeMgr[Transcode Manager]:::media
+    TranscodeWorkers[Transcode Worker Pool]:::media
+    UploadWorker[Rendition Upload Worker]:::media
+    CDN[CDN]:::media
+
+    Client -->|GET /search or /property by id| Gateway
+    Gateway --> SearchSvc
+    SearchSvc -->|1 candidate ids by city price range and amenities| SearchIndex
+    SearchSvc -->|2 filter out properties with a booked night in the date range| BookingNightCal
+    SearchSvc -->|3 hydrate property details| PropertyCache
+    PropertyCache -.cache miss.-> PropertyReplica
+
+    Gateway --> PropertyReadSvc --> PropertyCache
+
+    Client -->|POST /reserve for stay dates| Gateway --> BookingSvc
+    BookingSvc -->|1 acquire one lock per night in range fail fast if any night is already locked| RedisLock
+    BookingSvc -->|2 one transaction inserts a row for every night in range unique constraint rejects a taken night| BookingNightCal
+    BookingSvc -->|3 insert booking status PENDING with expires_at| BookingDBPrimary
+    BookingDBPrimary -->|replication| BookingDBReplica
+    BookingSvc -->|invalidate on write| BookingCache
+    Reaper -->|sweep expired PENDING bookings| BookingDBPrimary
+    Reaper -->|delete the held night rows| BookingNightCal
+    Reaper -->|release lock if still held| RedisLock
+    RedisLock -.TTL auto expiry is the backstop if release is missed.-> Reaper
+
+    Client -->|POST /pay with booking_id and idempotency_key| Gateway --> PaymentSvc
+    PaymentSvc -->|charge| ExtPay
+    ExtPay -->|webhook with payment status| PaymentSvc
+    PaymentSvc -->|dedup by idempotency_key| PaymentDB
+    PaymentSvc -->|confirm booking post payment| BookingSvc
+    BookingSvc -->|BOOKED| BookingDBPrimary
+    BookingSvc -->|release this stay's locks| RedisLock
+    BookingSvc --> NotifSvc
+    NotifSvc -->|SSE booking confirmed| Client
+
+    PropertyDBPrimary --> CDC --> IndexKafka --> IndexWorker --> SearchIndex
+
+    Admin -->|POST /properties bulk update| Gateway --> BulkWorker
+    BulkWorker --> BulkKafka
+    BulkKafka --> PropertyWriteSvc
+    PropertyWriteSvc -->|chunked writes| PropertyDBPrimary
+    PropertyWriteSvc -->|invalidate| PropertyCache
+
+    Client -->|POST /upload| Gateway --> MediaSvc --> S3
+    S3 --> Breaker --> MediaKafka --> TranscodeMgr --> TranscodeWorkers --> UploadWorker --> S3
+    Client -->|GET /image| CDN --> S3
