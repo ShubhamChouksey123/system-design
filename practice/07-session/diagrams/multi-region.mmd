@@ -1,0 +1,34 @@
+flowchart TB
+    classDef edge fill:#e0f0ff,stroke:#2471a3,color:#000
+    classDef hot fill:#ffe0e0,stroke:#c0392b,color:#000
+    classDef infra fill:#f2f2f2,stroke:#555,color:#000
+
+    Client([Global client])
+    Geo[GeoDNS or anycast routes to the nearest region]:::edge
+
+    subgraph R1[Region us-east-2]
+        GW1[API Gateway plus rate limit middleware]:::hot
+        Redis1[(Redis cluster local counters only)]:::hot
+        BE1[Backend Service]
+    end
+
+    subgraph R2[Region eu-central-1]
+        GW2[API Gateway plus rate limit middleware]:::hot
+        Redis2[(Redis cluster local counters only)]:::hot
+        BE2[Backend Service]
+    end
+
+    Control[Slow async rebalancer runs every few seconds optional]:::infra
+
+    Client --> Geo
+    Geo -->|nearest hop for this request| GW1
+    Geo -->|nearest hop for this request| GW2
+    GW1 -->|atomic check and increment local only no cross region call| Redis1
+    GW2 -->|atomic check and increment local only no cross region call| Redis2
+    GW1 -->|allowed| BE1
+    GW2 -->|allowed| BE2
+
+    Redis1 -.reports regional usage every few seconds.-> Control
+    Redis2 -.reports regional usage every few seconds.-> Control
+    Control -.adjusts each region's local limit share.-> Redis1
+    Control -.adjusts each region's local limit share.-> Redis2
