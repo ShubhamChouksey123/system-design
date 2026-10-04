@@ -7,11 +7,11 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 ## 📊 Progress Tracking
 
-Track your overall concepts: **27 / 51 completed (53%)** *(read + revised)*
+Track your overall concepts: **30 / 53 completed (57%)** *(read + revised)*
 
-- **Written:** 42 / 51 — **82%** *(9 in backlog — the `*(todo)*` rows)*
-- **Read:** 27 / 51 — **53%**
-- **Revised:** 0 / 51 — **0%**
+- **Written:** 44 / 53 — **83%** *(9 in backlog — the `*(todo)*` rows)*
+- **Read:** 30 / 53 — **57%**
+- **Revised:** 2 / 53 — **4%**
 
 > Tick `☐ → ✅` in the table as you go; run `scripts/progress.sh` to refresh these counts.
 
@@ -25,8 +25,8 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | **01 · Envelope Estimation** | [Back-of-the-Envelope Estimation](./01-envelope-estimation/back-of-the-envelope-estimation.md) |  ✅   | ✅ | 2026-08-25    |
 | | ↳ [Worked Examples](./01-envelope-estimation/back-of-the-envelope-examples.md) |  ✅   | ☐ | 2026-08-23    |
 | **02 · Foundations** | [Basics — Cloud, API, Scalability](./02-foundations/basics.md) |  ☐   | ☐ | —             |
-| | [Non-Functional Requirements — the "-ilities"](./02-foundations/non-functional-requirements.md) |  ☐   | ☐ | —             |
-| | [Monolithic vs Microservices](./02-foundations/monolithic-vs-microservices.md) |  ☐   | ☐ | —             |
+| | [Non-Functional Requirements — the "-ilities"](./02-foundations/non-functional-requirements.md) |  ✅   | ✅ | 2026-09-20    |
+| | [Monolithic vs Microservices](./02-foundations/monolithic-vs-microservices.md) |  ✅   | ☐ | —             |
 | **03 · Networking & Delivery** | [Load Balancing & Consistent Hashing](./03-networking-and-delivery/load-balancing-and-consistent-hashing.md) |  ✅   | ☐ | 2026-08-17    |
 | | [Content Delivery Network (CDN)](./03-networking-and-delivery/cdn.md) |  ☐   | ☐ | —             |
 | | DNS & Networking *(todo)* |  ☐   | ☐ | —             |
@@ -55,7 +55,7 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | | Geospatial Indexing — geohash, quadtree *(todo)* |  ☐   | ☐ | —             |
 | | Bloom Filters *(todo)* |  ☐   | ☐ | —             |
 | | [Unique ID Generation — Snowflake, UUID](./05-databases-and-storage/unique-id-generation.md) |  ☐   | ☐ | —             |
-| **06 · Caching** | [Caching](./06-caching/caching.md) |  ☐   | ☐ | —             |
+| **06 · Caching** | [Caching](./06-caching/caching.md) |  ✅   | ☐ | —             |
 | | [Distributed Caching — Redis & Memcached](./06-caching/redis-and-memcached.md) |  ☐   | ☐ | —             |
 | | ↳ [Redis Sorted Sets (ZSET)](./06-caching/redis-sorted-sets.md) |  ☐   | ☐ | —             |
 | **07 · Messaging & Events** | [Message Queue](./07-messaging-and-events/message-queue.md) |  ☐   | ☐ | —             |
@@ -70,6 +70,8 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | | Batch vs Stream Processing *(todo)* |  ☐   | ☐ | —             |
 | **09 · Reliability & Operations** | [Resilience Patterns — retries, circuit breaker](./09-reliability-and-operations/resilience-patterns.md) |  ✅   | ☐ | 2026-08-18    |
 | | [Observability — logs, metrics, tracing, SLO](./09-reliability-and-operations/observability.md) |  ✅   | ☐ | 2026-08-18    |
+| | [Deployment & Rollback Strategies — blue-green, canary, rolling](./09-reliability-and-operations/deployment-and-rollback-strategies.md) |  ☐   | ☐ | —             |
+| | [Testing & Migration Strategies — safe feature rollout, backward-compatible schema/API changes](./09-reliability-and-operations/testing-and-migration-strategies.md) |  ☐   | ☐ | —             |
 | **Broader tracks** | AWS — core services mapped to concepts *(todo)* |  ☐   | ☐ | —             |
 | | AI curriculum *(todo)* |  ☐   | ☐ | —             |
 
