@@ -1,0 +1,51 @@
+flowchart LR
+    classDef clientCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    classDef readCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    classDef writeCls fill:#fff3e0,stroke:#e65100,color:#bf360c
+    classDef storeCls fill:#f3e5f5,stroke:#6a1b9a,color:#4a148c
+    classDef opsCls fill:#fafafa,stroke:#616161,color:#212121
+
+    Client["Client\nmobile / web app"]:::clientCls
+
+    %% Read path
+    CDN["CDN / Edge Cache\nGET /trending/{region}"]:::readCls
+    GW["API Gateway"]:::readCls
+    ReadSvc["Trending Read Service"]:::readCls
+    TopCache["Trending Cache\nRedis string, precomputed Top-10 JSON\nkey: trending:top10:{region}"]:::storeCls
+    MetaDB["Song Metadata DB\nRelational, song_id to title/artist/art"]:::storeCls
+    MetaCache["Song Metadata Cache\nRedis, cache-aside"]:::storeCls
+
+    Client -->|"HTTPS GET, every app open"| CDN
+    CDN -->|"edge cache miss, ~every 15-30s TTL"| GW
+    GW --> ReadSvc
+    ReadSvc -->|"GET precomputed list"| TopCache
+    ReadSvc -->|"hydrate song ids to display objects"| MetaCache
+    MetaCache -->|"cache miss"| MetaDB
+    ReadSvc -->|"JSON response"| GW
+    GW -->|"response, then edge-cached"| CDN
+    CDN -->|"served from edge for all other users"| Client
+
+    %% Write path
+    Playback["Playback Service\nemits a play event per stream"]:::writeCls
+    Topic["Kafka topic: play-events\n(song_id, user_id, region, ts)"]:::storeCls
+    Agg["Aggregator Worker\nbatches events, ZINCRBY per batch"]:::writeCls
+    ZSET["Trending ZSET\nRedis sorted set per region+hour bucket\nkey: trending:{region}:{hour_bucket}, TTL 48h"]:::storeCls
+    Archive["Play Count Archive\nWide-column NoSQL (Cassandra), durable, for royalties/analytics"]:::storeCls
+
+    Client -->|"plays a song"| Playback
+    Playback -->|"publish, async, at-least-once"| Topic
+    Topic -->|"consume"| Agg
+    Agg -->|"batched increment, every few seconds"| ZSET
+    Agg -->|"async durable write, decoupled from ranking"| Archive
+
+    %% Refresh job
+    Refresh["Trending Refresh Job\ncron/worker, every 15-30s"]:::writeCls
+    Refresh -->|"ZREVRANGE top 10, sum last N hour buckets"| ZSET
+    Refresh -->|"write precomputed list"| TopCache
+    Refresh -->|"purge/short-TTL invalidation"| CDN
+
+    %% Monitoring
+    Mon["Monitoring & Alerts\nconsumer lag, cache hit ratio, refresh-job latency"]:::opsCls
+    Topic -.->|"lag metric"| Mon
+    TopCache -.->|"hit-ratio metric"| Mon
+    Refresh -.->|"job success/latency metric"| Mon

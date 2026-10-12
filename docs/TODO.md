@@ -57,8 +57,10 @@ Grouped by topic.
 - [ ] **Rate limiting** — token bucket / leaky bucket / sliding window; distributed counters. *(bullets in api-security)*
 
 ## Reliability & Operations
-- [ ] **Resilience patterns** — timeouts, retries + backoff, circuit breaker, bulkhead, idempotency keys. *(scattered)*
-- [ ] **Observability** — logging, metrics, distributed tracing, health checks, alerting / SLO.
+- [x] **Resilience patterns** — timeouts, retries + backoff, circuit breaker, bulkhead, idempotency keys. *(scattered)*
+- [x] **Observability** — logging, metrics, distributed tracing, health checks, alerting / SLO.
+- [x] **Deployment & rollback strategies** — blue-green, canary, rolling deployment; rollback plans when a release fails.
+- [x] **Testing & migration strategies** — safe feature rollout (feature flags, contract/integration tests), backward-compatible schema/API migrations (expand-contract pattern) so an in-flight change can't break the existing feature.
 
 ## APIs
 - [x] **Serialization formats** — JSON vs Protobuf vs Avro/Thrift; schema evolution. *(only inside grpc/Kafka)*
@@ -73,14 +75,20 @@ Grouped by topic.
 
 # Case Studies — "Design X"
 
-Cross-checked against `practice/README.md`'s 13 logged sessions (see the tracker's own ["How to Improve" plan](../practice/README.md#how-to-improve) for the re-solve backlog on problems already attempted). **Already run** (mark done, don't re-list as backlog — re-attempts belong in the re-solve plan above, not here):
+Cross-checked against `practice/README.md`'s 14 logged sessions (see the tracker's own ["How to Improve" plan](../practice/README.md#how-to-improve) for the re-solve backlog on problems already attempted). **Already run** (mark done, don't re-list as backlog — re-attempts belong in the re-solve plan above, not here):
 
 - [x] URL shortener → S01 *(re-solve: none needed, S01 was the only pass at this one but it's low-stakes)*
-- [x] Rate limiter → S07 *(⚠️ 6.0 — a good re-solve candidate; see practice tracker)*
-- [x] Chat / WhatsApp → S08 (⚠️ 6.5) → S09 re-solve (✅ 7.5)
-- [x] YouTube / video streaming → S12 (✅ 7.2)
-- [x] News feed *(as a component, not standalone)* → built inside S06's MVP feed and S13's hybrid push/pull feed (✅ 7.5) — the celebrity fan-out crux is now a banked strength; a **standalone** feed-only session isn't high-value anymore
-- [x] Multi-channel notification system, standalone → S14 (⚠️ 7.0) — per-provider fault isolation and circuit breakers landed; priority tiers, ordering, and concrete Kafka partition/consumer-scaling math didn't — good re-solve candidate
+- [x] Basic e-commerce platform → S02 → S03 re-solve — flipped the interviewer's own verdict FAIL→Lean Hire, but Problem-Solving regressed on the re-solve (concurrent-last-unit race missed again); Orders-vs-Payments modeling and PCI/payment-data still open
+- [x] Online auction system (eBay-style) → S04 — the log's low point on first contact with a fresh concurrency-first crux; good re-solve candidate (none run yet)
+- [x] Online learning platform (Udemy/Coursera-style) → S05
+- [x] MVP social networking app *(startup, cost-constrained)* → S06
+- [x] Rate limiter → S07 *(a good re-solve candidate; see practice tracker)*
+- [x] Chat / WhatsApp → S08 → S09 re-solve
+- [x] High-frequency stock trading system → S10 → S11 re-solve — the log's largest single-session jump; price-level-aggregated books, cancellation/expiry↔reserved-funds lifecycle, and monitoring are the next-tier gaps
+- [x] YouTube / video streaming → S12
+- [x] Social media platform, bundled (feed + messaging + media as one mega-prompt) → S13 — three canonical problems stacked into a single session; CAP-style consistency splits and WebSocket connection-tier scaling are the open gaps
+- [x] News feed *(as a component, not standalone)* → built inside S06's MVP feed and S13's hybrid push/pull feed — the celebrity fan-out crux is now a banked strength; a **standalone** feed-only session isn't high-value anymore
+- [x] Multi-channel notification system, standalone → S14 — per-provider fault isolation and circuit breakers landed; priority tiers, ordering, and concrete Kafka partition/consumer-scaling math didn't — good re-solve candidate
 
 **Not yet attempted — prioritized by which *new* crux each tests** (the log's diminishing-returns problem: feed/messaging/media-pipeline cruxes are now well-drilled across S09–S13; the next-highest-leverage sessions are ones that force a crux this log has *never* faced):
 
@@ -94,3 +102,4 @@ Cross-checked against `practice/README.md`'s 13 logged sessions (see the tracker
 - [ ] **Payment system / ledger** (Stripe-style, as its own dedicated crux, not a feature bolted onto e-commerce) — new crux: **double-entry ledger correctness**, idempotency keys end-to-end, and reconciliation against a payment processor's async webhooks. Payments have been touched shallowly in S02–S04 and flagged as a recurring silent gap (Action Item #9) but never designed as the primary system.
 - [ ] **Search autocomplete / typeahead** — new crux: a **trie or prefix-index** structure with ranking, and a write path (popular-query promotion) decoupled from the read path. Smaller in scope than the others above — good as a quick, focused session rather than a big one.
 - [ ] **Web crawler** — new crux: **politeness/crawl-rate scheduling per domain**, dedup at web-scale (Bloom filters — another currently-`*(todo)*` concept gap), and a URL-frontier priority queue. Good pairing with the Bloom Filters concept doc once it's written.
+- [ ] **Friend/follower count at scale** (rapid-fire-shaped, e.g. the Atlassian Karat round's "friend count next to every post") — new crux: a **denormalized aggregate counter synced off graph mutations** (friend add/remove → atomic `INCR`/`DECR`), served at massive read fan-out via Redis cache-aside, sharded by `user_id`. Closest existing coverage is S06's `follows` table (no counter/caching decision made there) and S07's rate-limiter counter (same atomic-increment mechanism, different trigger — a sliding window, not a graph edge) — the combination of the two hasn't been drilled. Small enough to be a quick, focused session rather than a big one; see [`docs/company-specific/atlassian/karat-system-design-rapid-fire.md`](./company-specific/atlassian/karat-system-design-rapid-fire.md#1-friend-count-at-scale) for the worked rapid-fire answer.
