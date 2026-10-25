@@ -7,11 +7,11 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 ## 📊 Progress Tracking
 
-Track your overall concepts: **30 / 53 completed (57%)** *(read + revised)*
+Track your overall concepts: **30 / 54 completed (56%)** *(read + revised)*
 
-- **Written:** 44 / 53 — **83%** *(9 in backlog — the `*(todo)*` rows)*
-- **Read:** 30 / 53 — **57%**
-- **Revised:** 2 / 53 — **4%**
+- **Written:** 45 / 54 — **83%** *(9 in backlog — the `*(todo)*` rows)*
+- **Read:** 30 / 54 — **56%**
+- **Revised:** 2 / 54 — **4%**
 
 > Tick `☐ → ✅` in the table as you go; run `scripts/progress.sh` to refresh these counts.
 
@@ -65,6 +65,7 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | **08 · Distributed Systems** | [Single Point of Failure](./08-distributed-systems/single-point-of-failure.md) |  ✅   | ☐ | 2026-08-17    |
 | | [Consistency Models — strong / eventual / quorum](./08-distributed-systems/consistency-models.md) |  ✅   | ☐ | 2026-08-18    |
 | | [Concurrency Control — locks / CAS / atomic update / single-writer](./08-distributed-systems/concurrency-control.md) |  ☐   | ☐ | —             |
+| | [Write-Ahead Log & Durability-First Ingestion](./08-distributed-systems/write-ahead-log-and-durable-ingestion.md) |  ☐   | ☐ | —             |
 | | Consensus & Leader Election — Raft / Paxos *(todo)* |  ☐   | ☐ | —             |
 | | Distributed Transactions — 2PC / Saga / CDC *(todo)* |  ☐   | ☐ | —             |
 | | Batch vs Stream Processing *(todo)* |  ☐   | ☐ | —             |

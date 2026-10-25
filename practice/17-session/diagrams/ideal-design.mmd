@@ -1,0 +1,79 @@
+flowchart LR
+    classDef clientCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    classDef ingestCls fill:#fff3e0,stroke:#e65100,color:#bf360c
+    classDef storeCls fill:#f3e5f5,stroke:#6a1b9a,color:#4a148c
+    classDef alertCls fill:#ffebee,stroke:#c62828,color:#8e0000
+    classDef readCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    classDef opsCls fill:#fafafa,stroke:#616161,color:#212121
+
+    Sources["Metric Sources\nagents / services, per customer"]:::clientCls
+    Dashboards["Dashboards"]:::clientCls
+    Engineer["Client Engineer"]:::clientCls
+
+    Gateway["Ingest Gateway\nauthN, validate, rate limit per tenant"]:::ingestCls
+    RawTopic["Raw Metric Topic\npartitioned by account_id"]:::storeCls
+    Enrich["Enrichment Service\naggregation, drop rules, cardinality guard"]:::ingestCls
+
+    PartTopic["Partitioned Write Topic\npost-enrichment"]:::storeCls
+    InsertWorkers["Insert Workers"]:::ingestCls
+    TSStore["Time-Series Store\nsharded by account_id, append-only"]:::storeCls
+    Rollup["Rollup Compactor\n1m to 5m to 1h to 1d"]:::ingestCls
+    Cold["Cold Storage\nobject store, data older than 7 days"]:::storeCls
+    QueryGW["Query Gateway\nauthN, authZ, rate limit"]:::readCls
+    QuerySvc["Query Service\npicks rollup granularity by time range"]:::readCls
+
+    AlertRouter["Alert Rule Router\nroutes by comparison_type: rolling vs baseline\n(NOT by aggregation_window length)"]:::alertCls
+    RuleEval["Rolling-Window Evaluator\ncomparison_type = rolling, any aggregation_window size\ntime-bucketed incremental state, emits at each rule's own slide_by cadence\nfed from the stream directly - never polls the Time-Series Store"]:::alertCls
+    WindowState["Window State Store\nin-memory KV, bucketed by aggregation_window, TTL"]:::storeCls
+    LongEval["Baseline / Historical-Comparison Evaluator\ncomparison_type = baseline, e.g. vs same period last week\nqueries only to refresh the baseline value, on its own low-frequency schedule - independent of the rule's slide_by"]:::alertCls
+    AlertState["Alert State Store\nopen / resolved, dedup key"]:::storeCls
+    AlertTopic["Alert Event Topic"]:::storeCls
+    NotifySvc["Notification Service\ndestination resolver, template builder, idempotent send"]:::alertCls
+    UserDB["User DB"]:::storeCls
+    IntegKeys["Integration Keys Store\nPagerDuty / Slack / Email credentials"]:::storeCls
+    PagerDuty["PagerDuty"]:::clientCls
+    Slack["Slack"]:::clientCls
+    Email["Email"]:::clientCls
+
+    Mon["Monitoring and Alerts (meta)\nconsumer lag, cardinality-violation rate, eval latency, notification failure rate, baseline-refresh query load"]:::opsCls
+
+    Sources -->|"push, periodic interval"| Gateway
+    Gateway -->|"validated metric"| RawTopic
+    RawTopic -->|"consume"| Enrich
+
+    Enrich -->|"storage path"| PartTopic
+    PartTopic --> InsertWorkers
+    InsertWorkers -->|"write"| TSStore
+    TSStore <-->|"background rollup"| Rollup
+    TSStore -->|"tier after 7 days"| Cold
+    Dashboards -->|"GET /query"| QueryGW
+    QueryGW --> QuerySvc
+    QuerySvc -->|"read recent"| TSStore
+    QuerySvc -->|"read older"| Cold
+
+    Enrich -->|"same stream, alerting path"| AlertRouter
+    AlertRouter -->|"rolling window, any size, any slide_by"| RuleEval
+    AlertRouter -->|"needs a disjoint historical period"| LongEval
+    RuleEval <-->|"roll up bucket, emit every slide_by"| WindowState
+    LongEval -->|"refresh baseline value, low frequency, e.g. hourly"| QueryGW
+
+    RuleEval -->|"on breach, check dedup"| AlertState
+    LongEval -->|"on breach, check dedup"| AlertState
+    RuleEval -->|"new breach only"| AlertTopic
+    LongEval -->|"new breach only"| AlertTopic
+    AlertTopic --> NotifySvc
+    NotifySvc -->|"fetch user"| UserDB
+    NotifySvc -->|"fetch integration key"| IntegKeys
+    NotifySvc -->|"idempotent call"| PagerDuty
+    NotifySvc -->|"idempotent call"| Slack
+    NotifySvc -->|"idempotent call"| Email
+    PagerDuty --> Engineer
+    Slack --> Engineer
+    Email --> Engineer
+    Engineer -->|"investigates"| Dashboards
+
+    RawTopic -.->|"consumer lag"| Mon
+    Enrich -.->|"cardinality-violation rate"| Mon
+    RuleEval -.->|"evaluation latency"| Mon
+    LongEval -.->|"baseline-refresh query rate"| Mon
+    NotifySvc -.->|"delivery failure rate"| Mon

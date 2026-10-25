@@ -95,6 +95,7 @@ not_in_nav: |
   practice/12-session/script.md
   practice/13-session/script.md
   practice/14-session/script.md
+  practice/17-session/script.md
 
 nav:
   - Home: index.md
@@ -148,6 +149,7 @@ nav:
           - Single Point of Failure: concepts/08-distributed-systems/single-point-of-failure.md
           - Consistency Models — Strong, Eventual, Quorum: concepts/08-distributed-systems/consistency-models.md
           - Concurrency Control — Locks, CAS, Atomic Update, Single-Writer: concepts/08-distributed-systems/concurrency-control.md
+          - Write-Ahead Log & Durability-First Ingestion: concepts/08-distributed-systems/write-ahead-log-and-durable-ingestion.md
       - "09 · Reliability & Operations":
           - Resilience Patterns — Timeouts, Retries, Circuit Breakers: concepts/09-reliability-and-operations/resilience-patterns.md
           - Observability — Logs, Metrics, Tracing & SLOs: concepts/09-reliability-and-operations/observability.md
@@ -172,3 +174,4 @@ nav:
       - "Session 14 — Notification System": practice/14-session/README.md
       - "Session 15 — Property Search & Reservation (self-practiced)": practice/15-session/README.md
       - "Session 16 — Trending Songs (self-practiced)": practice/16-session/README.md
+      - "Session 17 — Monitoring & Alerting System": practice/17-session/README.md
