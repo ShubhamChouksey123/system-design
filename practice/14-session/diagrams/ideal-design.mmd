@@ -12,7 +12,8 @@ flowchart LR
     Promo([Promotion service]):::clientCls
 
     API["Notification API<br/>authN + per-client rate limit<br/>idempotency check first"]:::edgeCls
-    IDEMP[("Idempotency cache<br/>idempotency_key -> notification_id, TTL 24h<br/>fallback: durable log on cache miss")]:::storeCls
+    IDEMP[("Idempotency cache<br/>idempotency_key -> notification_id, TTL 24h")]:::storeCls
+    REQDB[("notification_request DB<br/>durable record: notification_id, idempotency_key (unique),<br/>user_id, channel, priority, status<br/>wide-column NoSQL")]:::storeCls
     PREF[("User preference / unsubscribe cache<br/>Redis, DB reader fallback on miss")]:::storeCls
     RLCFG[("Per-user + per-channel rate-limit config<br/>data, not code - hot-reloadable")]:::storeCls
 
@@ -46,7 +47,7 @@ flowchart LR
     FALLBACK["Fallback policy<br/>e.g. OTP: SMS then email on failure"]:::coreCls
     DLQ[("Dead-letter queue<br/>per channel, after N retries + alert")]:::opsCls
 
-    LOG[("Notification log<br/>append-only: queued/sent/delivered/failed")]:::storeCls
+    LOG[("notification_log DB<br/>append-only per-attempt history: provider, attempt_count, status")]:::storeCls
     EVENTS{{"Delivery + engagement events<br/>Kafka"}}:::spineCls
     ANALYTICS["Analytics service<br/>delivery rate, open/click, unsubscribe trends"]:::readCls
     MON["Monitoring / alerting<br/>DLQ depth, breaker-open duration,<br/>per-provider failure rate, consumer lag"]:::opsCls
@@ -54,6 +55,8 @@ flowchart LR
     Billing --> API
     Promo --> API
     API -->|"check dedup"| IDEMP
+    IDEMP -.->|"cache miss - fallback lookup"| REQDB
+    API -->|"create durable record"| REQDB
     API -->|"check subscribed"| PREF
     API -.->|"check budget"| RLCFG
     API --> CLASSIFY
@@ -84,6 +87,10 @@ flowchart LR
     PUWORK -->|"fetch"| TEMPLATE
     PUWORK --> PUCB --> APNs
     PUWORK -.->|"exhausted retries"| DLQ
+
+    SMSWORK -->|"update status"| REQDB
+    EMWORK -->|"update status"| REQDB
+    PUWORK -->|"update status"| REQDB
 
     SMSWORK --> LOG
     EMWORK --> LOG
