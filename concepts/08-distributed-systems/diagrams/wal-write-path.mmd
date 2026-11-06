@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Server as Server Process
+    participant WAL as Write-Ahead Log (disk)
+    participant State as In-Memory State / Index
+
+    Client->>Server: Write request (e.g. set balance = 100)
+    Server->>WAL: Append record
+    WAL->>WAL: fsync to disk
+    Note over WAL: Durable now — survives a crash from this point on
+    Server->>Client: Acknowledge commit
+    Server->>State: Apply record to in-memory state
+    Note over State: Rebuildable — replay the WAL to reconstruct this if lost
+
+    rect rgb(255, 230, 230)
+    Note over Server,State: Crash here, before apply, is safe:<br/>on restart, replay the WAL from the last checkpoint<br/>to rebuild State — the ack already matched durable data
+    end
