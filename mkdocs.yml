@@ -96,6 +96,7 @@ not_in_nav: |
   practice/13-session/script.md
   practice/14-session/script.md
   practice/17-session/script.md
+  practice/18-session/script.md
 
 nav:
   - Home: index.md
@@ -175,3 +176,4 @@ nav:
       - "Session 15 — Property Search & Reservation (self-practiced)": practice/15-session/README.md
       - "Session 16 — Trending Songs (self-practiced)": practice/16-session/README.md
       - "Session 17 — Monitoring & Alerting System": practice/17-session/README.md
+      - "Session 18 — Notification System (Re-solve)": practice/18-session/README.md
