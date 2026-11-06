@@ -15,6 +15,7 @@ A **database** is an organized, persistent store of data; a **DBMS** (Database M
 | **Relational (SQL)** | Tables + rows, fixed schema, joins | PostgreSQL, MySQL | Structured data, transactions, complex queries |
 | **NoSQL** | Non-relational (see below) | see below | Scale, flexible schema, high write throughput |
 | **NewSQL** | SQL + ACID at NoSQL scale | Google Spanner, CockroachDB | Relational guarantees that scale horizontally |
+| **Time-series** | Append-only, partitioned by series key + time, built-in downsampling/rollups | **Prometheus**, **InfluxDB**, AWS Timestream | Metrics, monitoring/alerting, IoT sensor data — write-heavy, range-scan reads |
 
 **NoSQL families:**
 
@@ -31,6 +32,7 @@ Deep dive on families, trade-offs, and use cases: [NoSQL databases](./nosql-data
 
 - **SQL** — you need **ACID transactions**, complex joins/queries, and a well-defined schema (payments, orders, users).
 - **NoSQL** — you need **horizontal scale**, flexible/evolving schema, or very high write throughput, and can relax joins/strong consistency (feeds, logs, catalogs, sessions).
+- **Time-series** — your access pattern is "scan a time range for one series" (not point lookups) and the write volume is relentless — **Prometheus** (pull-based scraping, in-process + remote-write storage) and **InfluxDB** (push-based ingest) are the canonical examples; both compress well because consecutive values in one series are similar, and both build in **rollup/downsampling** so long-range queries don't scan raw resolution.
 
 ## 4. ACID properties
 
@@ -55,4 +57,4 @@ Related: **BASE** (Basically Available, Soft state, Eventual consistency) is the
 
 ## 7. One-Paragraph Summary (for quick revision)
 
-A **database** stores data persistently, managed by a **DBMS**. Pick **relational (SQL)** for structured data with **ACID** transactions and joins, **NoSQL** (key-value, document, wide-column, graph) for horizontal scale and flexible schema, or **NewSQL** for both. **ACID** (atomicity, consistency, isolation, durability) governs reliable transactions; the **CAP theorem** says a distributed store must choose **consistency vs availability** during a partition (CP vs AP), with **BASE** / eventual consistency the NoSQL trade-off. **Normalize** to remove redundancy (more joins, safer writes) or **denormalize** to speed reads (duplicated data, harder writes). See the companion for indexing, replication, and sharding.
+A **database** stores data persistently, managed by a **DBMS**. Pick **relational (SQL)** for structured data with **ACID** transactions and joins, **NoSQL** (key-value, document, wide-column, graph) for horizontal scale and flexible schema, **NewSQL** for both, or a **time-series database** (Prometheus, InfluxDB) when the access pattern is "scan a time range per series" at relentless write volume. **ACID** (atomicity, consistency, isolation, durability) governs reliable transactions; the **CAP theorem** says a distributed store must choose **consistency vs availability** during a partition (CP vs AP), with **BASE** / eventual consistency the NoSQL trade-off. **Normalize** to remove redundancy (more joins, safer writes) or **denormalize** to speed reads (duplicated data, harder writes). See the companion for indexing, replication, and sharding.
