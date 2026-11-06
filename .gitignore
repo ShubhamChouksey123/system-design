@@ -22,6 +22,10 @@ docs/*.pdf
 # Personal scratchpad / prompt buffer (see CLAUDE.md) — not a deliverable.
 tmp.md
 
+# Local-only notes referencing New Relic's internal architecture (real service/component
+# names, internal repos, Kafka topic names) — never to be committed or published.
+docs/new-relic/
+
 # --- MkDocs site build output ---
 # `mkdocs.yml` builds to ../site (outside the repo); these cover local/CI variants.
 /site/

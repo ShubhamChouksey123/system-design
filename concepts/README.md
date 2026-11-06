@@ -7,11 +7,11 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 ## 📊 Progress Tracking
 
-Track your overall concepts: **30 / 54 completed (56%)** *(read + revised)*
+Track your overall concepts: **31 / 54 completed (57%)** *(read + revised)*
 
 - **Written:** 45 / 54 — **83%** *(9 in backlog — the `*(todo)*` rows)*
-- **Read:** 30 / 54 — **56%**
-- **Revised:** 2 / 54 — **4%**
+- **Read:** 31 / 54 — **57%**
+- **Revised:** 3 / 54 — **6%**
 
 > Tick `☐ → ✅` in the table as you go; run `scripts/progress.sh` to refresh these counts.
 
@@ -59,7 +59,7 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | | [Distributed Caching — Redis & Memcached](./06-caching/redis-and-memcached.md) |  ☐   | ☐ | —             |
 | | ↳ [Redis Sorted Sets (ZSET)](./06-caching/redis-sorted-sets.md) |  ☐   | ☐ | —             |
 | **07 · Messaging & Events** | [Message Queue](./07-messaging-and-events/message-queue.md) |  ☐   | ☐ | —             |
-| | [Apache Kafka](./07-messaging-and-events/apache-kafka.md) |  ☐   | ☐ | —             |
+| | [Apache Kafka](./07-messaging-and-events/apache-kafka.md) |  ✅   | ✅ | 2026-11-06    |
 | | [Event-Driven Architecture](./07-messaging-and-events/event-driven-architecture.md) |  ☐   | ☐ | —             |
 | | [Low-Latency Messaging — UDP multicast / Aeron / ring buffers](./07-messaging-and-events/low-latency-messaging.md) |  ☐   | ☐ | —             |
 | **08 · Distributed Systems** | [Single Point of Failure](./08-distributed-systems/single-point-of-failure.md) |  ✅   | ☐ | 2026-08-17    |
