@@ -1,0 +1,90 @@
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    classDef clientCls fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+    classDef edgeCls fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef coreCls fill:#ffebee,stroke:#c62828,color:#b71c1c;
+    classDef spineCls fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef storeCls fill:#fff8e1,stroke:#f9a825,color:#795548;
+    classDef readCls fill:#e0f7fa,stroke:#00838f,color:#006064;
+    classDef opsCls fill:#eceff1,stroke:#546e7a,color:#263238;
+
+    Guest([Guest / user]):::clientCls
+    Admin([Hotel admin]):::clientCls
+    GW["API gateway<br/>authN + authZ + rate limit"]:::edgeCls
+    CDN["CDN<br/>hotel photos"]:::edgeCls
+
+    subgraph READ["Read path - AP, cache first"]
+        SEARCH["Search service<br/>candidates by city, geo, filters"]:::readCls
+        ES[("Elasticsearch<br/>static hotel + room attributes")]:::storeCls
+        AVAIL["Availability filter<br/>batch check for the requested dates"]:::readCls
+        INVCACHE[("Availability cache - Redis<br/>hotel:room_type:date, TTL 30s")]:::storeCls
+        HOTELREAD["Hotel read service"]:::readCls
+        HOTELCACHE[("Hotel cache - Redis<br/>cache-aside, purge on admin update")]:::storeCls
+        RATE["Rate service<br/>dynamic price quote + lock"]:::readCls
+    end
+
+    subgraph WRITE["Booking path - CP, single transaction on the primary"]
+        BOOK["Booking service<br/>idempotency key, hold, confirm, cancel"]:::coreCls
+        IDEMP[("Idempotency store<br/>key -> reservation_id")]:::storeCls
+        BOOKDB[("Booking DB primary<br/>room_type_inventory + reservation<br/>same DB, shard key hotel_id")]:::storeCls
+        BOOKREP[("Booking DB replicas<br/>reporting + availability cache fill")]:::storeCls
+        REAPER["Hold reaper<br/>expire PENDING past expires_at,<br/>release inventory"]:::coreCls
+        PAY["Payment service<br/>PaymentIntent keyed by reservation_id"]:::coreCls
+        STRIPE["Stripe / PayPal"]:::edgeCls
+        RECON["Reconciliation job<br/>poll provider for old PENDING"]:::opsCls
+    end
+
+    subgraph ADMINP["Admin + content path"]
+        HOTELWRITE["Hotel writer service<br/>CRUD + bulk inventory update"]:::coreCls
+        HOTELDB[("Hotel DB primary<br/>hotel, room_type")]:::storeCls
+        CDC["Debezium<br/>reads WAL"]:::opsCls
+        KAFKA{{"Kafka<br/>CDC + booking events"}}:::spineCls
+        INDEXER["Index worker"]:::coreCls
+        S3[("AWS S3<br/>photo originals + renditions")]:::storeCls
+        RESIZE["Image resize worker<br/>thumbnails, WebP, DLQ"]:::coreCls
+    end
+
+    NOTIFY["Notification system<br/>confirmation, cancellation (see S14/S18)"]:::readCls
+    MON["Monitoring / alerting"]:::opsCls
+
+    Guest -->|"GET /hotels?city&dates"| GW
+    Guest -->|"POST /reservations<br/>Idempotency-Key"| GW
+    Guest -->|"GET photos"| CDN
+    Admin -->|"hotel + room CRUD, bulk inventory"| GW
+
+    GW --> SEARCH --> ES
+    SEARCH -->|"candidate hotel ids"| AVAIL
+    AVAIL -->|"batch lookup"| INVCACHE
+    INVCACHE -.->|"miss"| BOOKREP
+    GW --> HOTELREAD --> HOTELCACHE
+    HOTELCACHE -.->|"miss"| HOTELDB
+    GW -->|"quote"| RATE
+    RATE --> INVCACHE
+
+    GW --> BOOK
+    BOOK -->|"dedupe"| IDEMP
+    BOOK -->|"price lock"| RATE
+    BOOK -->|"1 txn: conditional UPDATE per night + INSERT PENDING"| BOOKDB
+    BOOKDB -->|"replication"| BOOKREP
+    BOOK -->|"client secret"| PAY
+    PAY -->|"create intent"| STRIPE
+    STRIPE -->|"signed webhook, dedupe by event id"| PAY
+    PAY -->|"paid: PENDING -> CONFIRMED"| BOOK
+    REAPER -->|"expire + release"| BOOKDB
+    RECON -.->|"lost webhook backstop"| STRIPE
+    RECON -.-> BOOK
+    BOOK -->|"outbox events"| KAFKA
+    KAFKA --> NOTIFY
+
+    GW --> HOTELWRITE --> HOTELDB
+    HOTELWRITE -->|"pre-signed upload URL"| S3
+    HOTELDB --> CDC --> KAFKA --> INDEXER --> ES
+    S3 -->|"upload event"| RESIZE
+    RESIZE --> S3
+    RESIZE -->|"rendition URLs"| HOTELWRITE
+    S3 --> CDN
+
+    BOOK -.-> MON
+    REAPER -.-> MON
+    PAY -.-> MON
+    KAFKA -.-> MON
