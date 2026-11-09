@@ -124,6 +124,89 @@ Scored by the mock platform. Compared against the previous session (S18); S15, t
 - **Search** — Elasticsearch narrows by city/geo/filters; the **availability filter** batch-reads `hotel:room_type:date` counters from Redis (TTL ~30 s, filled from replicas) and drops sold-out hotels. Stale-by-seconds is acceptable; the reserve transaction is the authority. Same CDC pipeline as the candidate's (Debezium → Kafka → index worker) keeps ES current.
 - **Plain-language picture** — a hotel front desk with a sticky note: when you ask for a room, the clerk writes your name on the room-nights *and* pencils in a 10-minute deadline; pay in time and it's inked; miss it and the note comes off. One clerk-desk (one database) means two guests can't both get the pencil.
 
+### Worked example — what the database writes at each step
+
+**Setup:** Hotel X, room type `Deluxe`, night of **8 Nov**: `total_inventory = 20`, `reserved_count = 15` → **5 rooms free**. Guest A wants **2 Deluxe rooms for the night of 8 Nov** (one night, so one inventory row; a 3-night stay would repeat the `UPDATE` once per date in the same transaction). The Rate service has quoted and locked a price of 120 per room → 240.
+
+| Table | Row | Before |
+|---|---|---|
+| `room_type_inventory` | `(X, Deluxe, 8 Nov)` | `total_inventory = 20`, `reserved_count = 15` |
+
+**Step 1 — guest clicks "Reserve" (10:00:00): the hold.** One transaction on the primary:
+
+```sql
+BEGIN;
+UPDATE room_type_inventory
+   SET reserved_count = reserved_count + 2
+ WHERE hotel_id = 'X' AND room_type_id = 'Deluxe' AND date = '8 Nov'
+   AND reserved_count + 2 <= total_inventory;   -- 15 + 2 = 17 <= 20 → 1 row affected
+INSERT INTO reservation (id, idempotency_key, user_id, hotel_id, room_type_id,
+                         start_date, end_date, rooms, price_locked,
+                         status, expires_at)
+VALUES ('R1', 'key-abc', 'A', 'X', 'Deluxe', '8 Nov', '9 Nov', 2, 240,
+        'PENDING', '10:10:00');                 -- hold deadline = now + 10 min
+COMMIT;
+```
+
+If the `UPDATE` had affected **0 rows** (say only 1 room was left), the transaction rolls back and the guest gets `409 sold out`; nothing is written. After the commit the Payment service creates the provider's PaymentIntent keyed by `R1` and inserts `payment(R1, status = PENDING, provider_intent_id)`.
+
+| Table | Row | After step 1 |
+|---|---|---|
+| `room_type_inventory` | `(X, Deluxe, 8 Nov)` | `reserved_count = 17` → **3 free** |
+| `reservation` | `R1` | `status = PENDING`, `expires_at = 10:10:00`, `price_locked = 240` |
+| `payment` | for `R1` | `status = PENDING` |
+
+The rooms are already counted as taken, so another guest asking for 4 now gets `17 + 4 = 21 > 20` → 0 rows → `409`, while a request for 3 still succeeds. This is the cost of a hold, and why the TTL is short.
+
+**Step 2 — guest pays in time (10:04:00): confirm.** The provider's signed webhook reaches the Payment service, which dedupes on the event id, then:
+
+```sql
+UPDATE payment     SET status = 'SUCCEEDED' WHERE reservation_id = 'R1';
+UPDATE reservation SET status = 'CONFIRMED'
+ WHERE id = 'R1' AND status = 'PENDING';        -- guarded transition → 1 row affected
+INSERT INTO outbox (event) VALUES ('reservation.confirmed R1');
+```
+
+| Table | Row | After step 2 |
+|---|---|---|
+| `room_type_inventory` | `(X, Deluxe, 8 Nov)` | **unchanged**, `reserved_count = 17` — the rooms were claimed at step 1, so confirming writes nothing here |
+| `reservation` | `R1` | `status = CONFIRMED` (`expires_at` no longer matters) |
+| `payment` | for `R1` | `status = SUCCEEDED` |
+
+The outbox row flows through Kafka to the notification system (confirmation email). The availability cache catches up within its ~30 s TTL.
+
+**Step 3 — guest abandons the payment (never pays).** No webhook arrives. At 10:10:00 the hold passes its `expires_at`; the **reaper** (runs every ~30 s) picks it up within the next cycle:
+
+```sql
+BEGIN;
+UPDATE reservation SET status = 'EXPIRED'
+ WHERE id = 'R1' AND status = 'PENDING' AND expires_at < now();   -- 1 row affected
+UPDATE room_type_inventory
+   SET reserved_count = reserved_count - 2
+ WHERE hotel_id = 'X' AND room_type_id = 'Deluxe' AND date = '8 Nov';  -- only if the line above hit a row
+COMMIT;
+```
+
+Then, best effort outside the transaction: cancel the PaymentIntent at the provider and set `payment.status = CANCELLED`.
+
+| Table | Row | After step 3 |
+|---|---|---|
+| `room_type_inventory` | `(X, Deluxe, 8 Nov)` | `reserved_count = 15` → **5 free again** |
+| `reservation` | `R1` | `status = EXPIRED` |
+| `payment` | for `R1` | `status = CANCELLED` |
+
+**The two races this design closes**
+
+- **Webhook vs. reaper at the deadline:** both use `WHERE status = 'PENDING'`, so exactly one of them changes the row. If the webhook wins, the reaper's `UPDATE` affects 0 rows and it skips the inventory release; if the reaper wins, the webhook's confirm affects 0 rows.
+- **Guest pays *after* expiry (say 10:12):** the provider took the money but the confirm affects 0 rows (`status` is `EXPIRED`). The Booking service tries to re-acquire (`15 + 2 <= 20` still true → run the conditional `UPDATE` again and set `CONFIRMED`); if the rooms were sold to someone else meanwhile, it **auto-refunds** and tells the guest. The reconciliation job covers the case where the webhook never arrives at all: it polls the provider for `PENDING` reservations older than N minutes and settles them the same way.
+
+| Time | Event | `reserved_count` | `reservation.status` | `payment.status` |
+|---|---|:--:|---|---|
+| 09:59 | Start | 15 | — | — |
+| 10:00:00 | Reserve (hold) | **17** | `PENDING` | `PENDING` |
+| 10:04:00 | Paid in time | 17 | `CONFIRMED` | `SUCCEEDED` |
+| *alt* 10:10:30 | Abandoned → reaper | **15** | `EXPIRED` | `CANCELLED` |
+
 ### Database schema
 
 | Table | Fields | Note |
