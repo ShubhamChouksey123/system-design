@@ -17,8 +17,10 @@ flowchart LR
 
     BookingSvc[Booking Service]:::write
     RedisLock[(Redis Distributed Lock per property and night TTL bound to hold)]:::write
-    BookingNightCal[(Booking Night Calendar Table)]:::write
-    BookingDBPrimary[(Booking DB Primary)]:::write
+    subgraph BookingDBPrimary["Booking DB Primary - ONE database, one ACID transaction"]
+        BookingNightCal[(booking_night table unique property_id and stay_date)]:::write
+        BookingRow[(booking table status and expires_at)]:::write
+    end
     BookingDBReplica[(Booking DB Read Replica)]:::write
     BookingCache[(Booking Cache Redis)]:::write
     Reaper[Hold Expiry Reaper Job]:::write
@@ -47,7 +49,7 @@ flowchart LR
     Client -->|GET /search or /property by id| Gateway
     Gateway --> SearchSvc
     SearchSvc -->|1 candidate ids by city price range and amenities| SearchIndex
-    SearchSvc -->|2 filter out properties with a booked night in the date range| BookingNightCal
+    SearchSvc -->|2 filter out properties with a booked night in the date range read from replica| BookingDBReplica
     SearchSvc -->|3 hydrate property details| PropertyCache
     PropertyCache -.cache miss.-> PropertyReplica
 
@@ -55,12 +57,12 @@ flowchart LR
 
     Client -->|POST /reserve for stay dates| Gateway --> BookingSvc
     BookingSvc -->|1 acquire one lock per night in range fail fast if any night is already locked| RedisLock
-    BookingSvc -->|2 one transaction inserts a row for every night in range unique constraint rejects a taken night| BookingNightCal
-    BookingSvc -->|3 insert booking status PENDING with expires_at| BookingDBPrimary
+    BookingSvc -->|2 same transaction inserts a row for every night in range unique constraint rejects a taken night| BookingNightCal
+    BookingSvc -->|3 same transaction inserts booking status PENDING with expires_at then commit| BookingRow
     BookingDBPrimary -->|replication| BookingDBReplica
     BookingSvc -->|invalidate on write| BookingCache
-    Reaper -->|sweep expired PENDING bookings| BookingDBPrimary
-    Reaper -->|delete the held night rows| BookingNightCal
+    Reaper -->|one transaction mark expired PENDING bookings EXPIRED| BookingRow
+    Reaper -->|and delete their held night rows| BookingNightCal
     Reaper -->|release lock if still held| RedisLock
     RedisLock -.TTL auto expiry is the backstop if release is missed.-> Reaper
 
@@ -69,7 +71,7 @@ flowchart LR
     ExtPay -->|webhook with payment status| PaymentSvc
     PaymentSvc -->|dedup by idempotency_key| PaymentDB
     PaymentSvc -->|confirm booking post payment| BookingSvc
-    BookingSvc -->|BOOKED| BookingDBPrimary
+    BookingSvc -->|guarded PENDING to BOOKED| BookingRow
     BookingSvc -->|release this stay's locks| RedisLock
     BookingSvc --> NotifSvc
     NotifSvc -->|SSE booking confirmed| Client
