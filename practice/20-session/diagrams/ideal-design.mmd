@@ -1,0 +1,128 @@
+flowchart LR
+    classDef read fill:#e0f0ff,stroke:#2471a3,color:#000
+    classDef order fill:#ffe0e0,stroke:#c0392b,color:#000
+    classDef pay fill:#fff3cd,stroke:#b7950b,color:#000
+    classDef dispatch fill:#fde8d0,stroke:#d35400,color:#000
+    classDef loc fill:#e8f8f5,stroke:#117864,color:#000
+    classDef admin fill:#efe5fb,stroke:#6c3483,color:#000
+    classDef ops fill:#f2f3f4,stroke:#566573,color:#000
+
+    Customer[Customer app]
+    Owner[Restaurant owner app]
+    Driver[Driver app]
+    Gateway[API Gateway with AuthN AuthZ and RateLimit]
+    WSGW[WebSocket Gateways A to N]
+
+    SearchSvc[Search Service]:::read
+    ES[(AWS Elasticsearch)]:::read
+    RestReadSvc[Restaurant Read Service]:::read
+    RestCache[(Restaurant and menu cache Redis)]:::read
+    RestReplica[(Restaurant DB Replica)]:::read
+
+    RestWriteSvc[Restaurant Write Service]:::admin
+    RestDB[(Restaurant DB Primary)]:::admin
+    CDC[Debezium reads WAL]:::admin
+    CDCKafka[(Kafka CDC Topic)]:::admin
+    IndexWorker[Index Worker]:::admin
+    S3[(AWS S3)]:::admin
+    ImgWorker[Image Worker scan resize WebP]:::admin
+    ImgDLQ[(Image DLQ)]:::admin
+    CDN[CDN]:::admin
+
+    OrderSvc[Order Service]:::order
+    Idem[(Idempotency store Redis)]:::order
+    subgraph OrderDBBox["Order DB Primary - one ACID transaction"]
+        OrderTbl[(orders and order_items price snapshot)]:::order
+        Outbox[(outbox)]:::order
+    end
+    EventKafka[(Kafka order and delivery events)]:::order
+
+    PaySvc[Payment Service]:::pay
+    PayDB[(Payment DB)]:::pay
+    ExtPay[External Payment Provider]:::pay
+    Recon[Reconciliation job]:::pay
+
+    OwnerNotif[Notification Service push to restaurant]:::ops
+
+    DispatchSvc[Dispatch Service offers timeouts re-dispatch]:::dispatch
+    subgraph DeliveryDBBox["Delivery DB Primary - one ACID transaction"]
+        DeliveryTbl[(delivery driver_id status)]:::dispatch
+        DriverTbl[(driver_state AVAILABLE or BUSY)]:::dispatch
+    end
+    PushSvc[Push Service APNs and FCM]:::dispatch
+
+    LocSvc[Location Service]:::loc
+    GeoIndex[(Redis GEO index per city plus last seen TTL)]:::loc
+    Presence[(Presence registry Redis)]:::loc
+    LocKafka[(Kafka location trail)]:::loc
+    ETASvc[ETA Service]:::loc
+    Maps[Maps routing API]:::loc
+    Trail[(AWS S3 sampled trail archive)]:::loc
+
+    Monitor[Metrics logs and alerts]:::ops
+
+    Customer -->|GET search HTTPS| Gateway
+    Gateway --> SearchSvc
+    SearchSvc -->|1 candidates by dish rating geo and open now| ES
+    SearchSvc -->|2 hydrate| RestCache
+    Gateway --> RestReadSvc -->|menu by id| RestCache
+    RestCache -.cache miss.-> RestReplica
+
+    Owner -->|POST restaurants and menu HTTPS| Gateway
+    Gateway --> RestWriteSvc
+    RestWriteSvc -->|write| RestDB
+    RestWriteSvc -->|invalidate| RestCache
+    RestDB -->|replication| RestReplica
+    RestDB -->|WAL| CDC --> CDCKafka --> IndexWorker -->|upsert| ES
+    Owner -->|pre-signed PUT| S3
+    S3 -->|upload event| ImgWorker
+    ImgWorker -->|renditions| S3
+    ImgWorker -.poison message.-> ImgDLQ
+    Customer -->|GET image| CDN --> S3
+
+    Customer -->|POST orders with Idempotency-Key HTTPS| Gateway
+    Gateway --> OrderSvc
+    OrderSvc -->|dedupe key| Idem
+    OrderSvc -->|1 tx insert order PLACED items and outbox row| OrderTbl
+    OrderTbl --- Outbox
+    OrderSvc -->|2 PaymentIntent keyed by order_id| PaySvc
+    PaySvc -->|charge| ExtPay
+    ExtPay -->|signed webhook deduped by event id| PaySvc
+    PaySvc --> PayDB
+    Recon -->|poll PENDING older than N min| ExtPay
+    PaySvc -->|payment succeeded guarded PLACED to PAID| OrderSvc
+    Outbox -->|relay| EventKafka
+
+    EventKafka -->|order.paid| OwnerNotif -->|push new order| Owner
+    Owner -->|accept reject or ready HTTPS| Gateway
+    Gateway -->|guarded status transition| OrderSvc
+    EventKafka -->|order.accepted with prep time| DispatchSvc
+
+    DispatchSvc -->|GEOSEARCH radius around restaurant| GeoIndex
+    DispatchSvc -->|create delivery UNASSIGNED| DeliveryTbl
+    DispatchSvc -->|offer to nearest K with 20 s timeout| PushSvc
+    PushSvc -->|WebSocket or APNs FCM| Driver
+    Driver -->|POST deliveries accept HTTPS| Gateway
+    Gateway --> DispatchSvc
+    DispatchSvc -->|same tx UPDATE delivery WHERE driver_id IS NULL and driver AVAILABLE to BUSY| DeliveryTbl
+    DeliveryTbl --- DriverTbl
+    DispatchSvc -->|delivery assigned picked up delivered| EventKafka
+    EventKafka -->|delivery events guarded transitions| OrderSvc
+    GeoIndex -.heartbeat lost TTL.-> DispatchSvc
+
+    Driver -->|location every 5 s WebSocket| WSGW
+    WSGW -->|ping| LocSvc
+    LocSvc -->|GEOADD and last seen| GeoIndex
+    LocSvc -->|which gateway holds the buyer| Presence
+    WSGW -->|register connection| Presence
+    LocSvc -->|throttled location and ETA push| WSGW
+    WSGW -->|WebSocket live tracking| Customer
+    LocSvc -->|publish ping| LocKafka --> ETASvc
+    LocKafka -->|sampled trail| Trail
+    ETASvc -->|route time| Maps
+    ETASvc -->|eta update| LocSvc
+
+    OrderSvc -.metrics.-> Monitor
+    DispatchSvc -.metrics.-> Monitor
+    LocSvc -.metrics.-> Monitor
+    EventKafka -.consumer lag.-> Monitor
