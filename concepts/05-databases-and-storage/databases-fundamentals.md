@@ -16,6 +16,7 @@ A **database** is an organized, persistent store of data; a **DBMS** (Database M
 | **NoSQL** | Non-relational (see below) | see below | Scale, flexible schema, high write throughput |
 | **NewSQL** | SQL + ACID at NoSQL scale | Google Spanner, CockroachDB | Relational guarantees that scale horizontally |
 | **Time-series** | Append-only, partitioned by series key + time, built-in downsampling/rollups | **Prometheus**, **InfluxDB**, AWS Timestream | Metrics, monitoring/alerting, IoT sensor data — write-heavy, range-scan reads |
+| **Geospatial** | Maps lat/lng to a 1-D key (**geohash**: shared prefix = nearby) or a tree (quadtree, R-tree, S2/H3) | **Redis GEO**, PostGIS, Elasticsearch `geo_point` | "Nearest K / within radius" — drivers, restaurants, places |
 
 **NoSQL families:**
 
@@ -25,6 +26,15 @@ A **database** is an organized, persistent store of data; a **DBMS** (Database M
 | **Document** | JSON-like documents | MongoDB |
 | **Wide-column** | rows with dynamic columns | Cassandra, HBase |
 | **Graph** | nodes + edges | Neo4j |
+
+**Geospatial example — Redis GEO** stores members in a sorted set scored by their 52-bit geohash, so a radius query is a range scan:
+
+```
+GEOADD drivers:blr 77.5946 12.9716 D1                                      # upsert a driver's position
+GEOSEARCH drivers:blr FROMLONLAT 77.60 12.97 BYRADIUS 3 km ASC COUNT 10   # nearest within 3 km
+```
+
+Geohash precision: 5 chars ≈ 5 km cell · 6 ≈ 1.2 km · 7 ≈ 150 m. Points near a cell edge can have different prefixes, so query the cell **plus its 8 neighbours**. Redis GEO is in-memory and has no per-member TTL (use a `last_seen` set + sweeper); use PostGIS for polygons or durable data. Worked use: [Session 20 dispatch](../../practice/20-session/README.md).
 
 Deep dive on families, trade-offs, and use cases: [NoSQL databases](./nosql-databases.md).
 
@@ -57,4 +67,4 @@ Related: **BASE** (Basically Available, Soft state, Eventual consistency) is the
 
 ## 7. One-Paragraph Summary (for quick revision)
 
-A **database** stores data persistently, managed by a **DBMS**. Pick **relational (SQL)** for structured data with **ACID** transactions and joins, **NoSQL** (key-value, document, wide-column, graph) for horizontal scale and flexible schema, **NewSQL** for both, or a **time-series database** (Prometheus, InfluxDB) when the access pattern is "scan a time range per series" at relentless write volume. **ACID** (atomicity, consistency, isolation, durability) governs reliable transactions; the **CAP theorem** says a distributed store must choose **consistency vs availability** during a partition (CP vs AP), with **BASE** / eventual consistency the NoSQL trade-off. **Normalize** to remove redundancy (more joins, safer writes) or **denormalize** to speed reads (duplicated data, harder writes). See the companion for indexing, replication, and sharding.
+A **database** stores data persistently, managed by a **DBMS**. Pick **relational (SQL)** for structured data with **ACID** transactions and joins, **NoSQL** (key-value, document, wide-column, graph) for horizontal scale and flexible schema, **NewSQL** for both, or a **time-series database** (Prometheus, InfluxDB) when the access pattern is "scan a time range per series" at relentless write volume. **ACID** (atomicity, consistency, isolation, durability) governs reliable transactions; the **CAP theorem** says a distributed store must choose **consistency vs availability** during a partition (CP vs AP), with **BASE** / eventual consistency the NoSQL trade-off. **Normalize** to remove redundancy (more joins, safer writes) or **denormalize** to speed reads (duplicated data, harder writes). For "nearby" queries use a **geospatial** index (geohash in Redis GEO, or PostGIS). See the companion for indexing, replication, and sharding.
