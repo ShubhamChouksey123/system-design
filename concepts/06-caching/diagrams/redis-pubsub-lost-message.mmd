@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant P as Publisher
+    participant R as Redis
+    participant A as Subscriber A (online)
+    participant B as Subscriber B (offline)
+    A->>R: SUBSCRIBE news
+    P->>R: PUBLISH news "m1"
+    R-->>P: 1 (receivers)
+    R->>A: m1
+    Note over B: B is disconnected
+    P->>R: PUBLISH news "m2"
+    R-->>P: 1 (receivers)
+    R->>A: m2
+    B->>R: SUBSCRIBE news
+    Note over B,R: B never gets m1 or m2. Redis kept nothing.

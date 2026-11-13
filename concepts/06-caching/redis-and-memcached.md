@@ -2,67 +2,114 @@
 
 ---
 
-A deeper look at the two dominant **distributed cache** tiers (the "Distributed" row in [caching](./caching.md)). Both are **in-memory key-value stores** accessed over the network and shared by all app servers — read that doc first for caching fundamentals.
+This file describes the two main **distributed cache** tiers (the "Distributed" row in [caching](./caching.md)). Both are **in-memory key-value stores**. Clients use them over the network. All app servers share them. Read the caching file first.
 
-## 1. Redis vs Memcached
+## 1. What is Redis?
+
+**Redis** is an in-memory data store. It keeps keys and values in RAM. Values can be strings, hashes, lists, sets, sorted sets, or streams. Persistence is optional. Common uses: cache, session store, rate limiter, leaderboard, queue.
+
+## 2. How Redis handles concurrency
+
+Many clients connect at the same time. Redis runs their commands on **one thread**.
+
+| Part | What it does |
+|---|---|
+| **Event loop** | One thread watches all sockets (`epoll`/`kqueue`). It serves the sockets that are ready. |
+| **Serial execution** | Redis runs one command at a time, to the end. |
+| **Atomic commands** | No other command can run in the middle of `INCR` or `ZADD`. No locks are necessary. |
+| **Many steps** | Use `MULTI/EXEC` or a **Lua script**. Redis runs them as one unit. |
+| **Optimistic lock** | `WATCH` a key. `EXEC` fails if the key changes. |
+| **Background work** | Snapshots and disk writes run in the background. Redis 6+ can use I/O threads for sockets. Commands stay single-threaded. |
+
+**Warning:** a slow command (`KEYS *`, a very large `SMEMBERS`) blocks all clients. Use `SCAN`. To use more CPU cores, add shards (Redis Cluster).
+
+## 3. Why Redis is fast
+
+| Reason | Effect |
+|---|---|
+| **RAM storage** | RAM access is about 100 ns. SSD access is about 100 µs or more. |
+| **Single thread** | No locks. No thread switches. |
+| **Event loop** | One thread serves thousands of connections. |
+| **Good data structures** | Hash table `O(1)`. Skip list `O(log n)`. Compact formats for small data. |
+| **Simple protocol** | RESP is easy to parse. Pipelining sends many commands in one round trip. |
+| **Disk off the hot path** | Writes go to RAM first. Disk writes happen in the background. |
+
+One node handles about 100K operations per second at sub-millisecond latency. The network is usually the limit, not the CPU. Trade-off: RAM size limits the data, and each shard uses one core.
+
+## 4. Redis vs Memcached
 
 | | **Redis** | **Memcached** |
 |---|---|---|
-| Data types | Rich: strings, hashes, lists, sets, **sorted sets**, streams, bitmaps | Strings/blobs only |
-| Threading | Mostly **single-threaded** event loop | **Multi-threaded** (scales on cores) |
-| Persistence | Optional (**RDB** snapshots + **AOF** log) | None (pure cache) |
-| Replication / HA | Built-in (leader–follower, **Sentinel**, **Cluster**) | None built-in (client-side only) |
+| Data types | Strings, hashes, lists, sets, **sorted sets**, streams, bitmaps | Strings and blobs only |
+| Threading | **Single-threaded** commands with an event loop | **Multi-threaded**. Uses many cores. |
+| Persistence | Optional (**RDB** snapshots and **AOF** log) | None |
+| Replication / HA | Built in (**Sentinel**, **Cluster**) | None. Client handles it. |
 | Sharding | **Redis Cluster** (hash slots) | Client-side (consistent hashing) |
-| Extras | Pub/sub, Lua, transactions, TTLs, geo | Simple, tiny, very fast |
+| Extras | Pub/sub, Lua, transactions, TTLs, geo | Simple, small, very fast |
 
-**Rule of thumb:** **Memcached** for a simple, huge, multi-threaded look-aside cache; **Redis** for anything richer (data structures, persistence, HA, pub/sub) — it's the default choice today.
+**Rule of thumb:** use **Memcached** for a simple, large cache that needs many cores. Use **Redis** when you need data structures, persistence, HA, or pub/sub. Redis is the usual default.
 
-## 2. Memcached architecture
+## 5. Memcached architecture
 
-A **multi-threaded**, pure in-memory slab-allocated key-value store. No persistence, no replication — a node loss = that shard's data is gone. **Sharding is client-side**: the client hashes the key (ideally **consistent hashing**) to pick a node. Simple and blazing fast for offloading DB reads.
+Memcached is a **multi-threaded** key-value store in RAM. It has no persistence and no replication. If a node fails, its data is lost. **The client does the sharding.** The client hashes the key (use **consistent hashing**) to choose a node.
 
-## 3. Redis architecture
+## 6. Redis architecture
 
-Single-threaded command processing (no lock contention; commands are atomic), with:
-- **Persistence** — **RDB** (point-in-time snapshots, compact, fast restart) and/or **AOF** (append-only command log, more durable). A pure cache can disable both.
-- **Replication** — one **primary**, N **replicas** (async) for read scaling and failover.
-- **Sentinel** — monitors nodes and does automatic **failover** (promote a replica) — HA without sharding.
-- **Cluster** — shards data across primaries using **16,384 hash slots**, each primary with replicas → horizontal scale **and** HA.
+| Part | Purpose |
+|---|---|
+| **RDB** | Point-in-time snapshots. Small files. Fast restart. Loses writes since the last snapshot. |
+| **AOF** | Log of all writes (`fsync everysec` loses at most 1 s). A pure cache can turn off both. |
+| **Replication** | One **primary** and many async **replicas**. Replicas serve reads and take over on failure. |
+| **Sentinel** | Monitors nodes. Promotes a replica when the primary fails. HA without sharding. |
+| **Cluster** | Splits data across primaries with **16,384 hash slots**. Each primary has replicas. Gives scale and HA. |
 
-## 4. Key routing — reading from the right node
+**Persistence in brief:**
 
-With data spread over many nodes, a key must **always map to the same node**, or a write and a later read land on different nodes → a guaranteed miss (or stale copy). Two approaches:
+- **RDB:** snapshot of all data. A `fork`ed child writes the file. The parent keeps serving (copy-on-write). Trigger: `save 300 100` or `BGSAVE`. Restart is fast. You lose writes after the last snapshot.
+- **AOF:** log of every write. Redis replays it at restart. `appendfsync`: `always` (slow, almost no loss), `everysec` (loses at most 1 s, common), `no` (the OS decides). `BGREWRITEAOF` shrinks the log.
+- **Both on:** Redis loads the AOF, because it is more complete.
+- **Pure cache:** turn both off. The database is the source of truth. Redis restarts empty, and the app refills it.
+- **Replicas only:** failover takes a few seconds. Each replica doubles memory.
+- **Choose by the loss you accept:** none = whole cache · RDB = minutes · AOF `everysec` = 1 s.
 
-- **Client-side (Memcached, proxies like twemproxy/Envoy)** — the client hashes the key to pick a node using **consistent hashing** (hash ring + virtual nodes), so adding/removing a node reshuffles only ~`K/N` keys instead of all of them. See [consistent hashing](../03-networking-and-delivery/load-balancing-and-consistent-hashing.md).
-- **Server-side hash slots (Redis Cluster)** — the keyspace is split into **16,384 slots**; `slot = CRC16(key) mod 16384`, each slot owned by one primary. The client caches the slot→node map and routes directly; if it guesses wrong, the node replies **`MOVED <slot> <host>`** to redirect it (and the client refreshes its map).
+## 7. Key routing
+
+A key must **always map to the same node**. If it does not, a read can go to a different node than the write. The read then misses or returns old data. There are two methods:
+
+| Method | How it works |
+|---|---|
+| **Client-side** (Memcached, twemproxy, Envoy) | The client hashes the key on a ring with virtual nodes. When you add or remove a node, only about `K/N` keys move. See [consistent hashing](../03-networking-and-delivery/load-balancing-and-consistent-hashing.md). |
+| **Hash slots** (Redis Cluster) | `slot = CRC16(key) mod 16384`. One primary owns each slot. The client keeps a slot-to-node map. If the node is wrong, it replies `MOVED <slot> <host>`. The client then updates its map. |
 
 ```
-key ──CRC16 mod 16384──▶ slot 8412 ──owned by──▶ Primary B   (read & write here)
-wrong node?  → node replies  MOVED 8412 10.0.0.3:6379  → client retries + caches map
+key ──CRC16 mod 16384──▶ slot 8412 ──owned by──▶ Primary B
+wrong node?  → MOVED 8412 10.0.0.3:6379  → client retries and updates its map
 ```
 
-**Keep related keys together** with a **hash tag** — only the `{...}` part is hashed, so `user:{42}:profile` and `user:{42}:sessions` share a slot, enabling multi-key ops/transactions on the same node.
+Use a **hash tag** to keep related keys together. Redis hashes only the `{...}` part. `user:{42}:profile` and `user:{42}:sessions` use the same slot. Multi-key commands then work.
 
-## 5. Use cases
+## 8. Use cases
 
-- **Cache** (both) — offload DB/compute for hot reads.
-- **Session store** — shared sessions so app servers stay **stateless**.
-- **Rate limiting** — atomic `INCR` + TTL (Redis).
-- **Leaderboards / ranking** — Redis **sorted sets**.
-- **Queues / pub-sub / streams** — lightweight messaging (Redis).
-- **Real-time counters & analytics** — atomic ops, bitmaps, HyperLogLog (Redis).
+| Use case | Redis feature |
+|---|---|
+| Cache for hot reads | Both |
+| Session store (stateless app servers) | Both |
+| Rate limiting | `INCR` and TTL |
+| Leaderboards | [Sorted sets](./redis-sorted-sets.md) |
+| Queues, pub/sub, streams | Streams, lists, [pub/sub](./redis-pub-sub.md) |
+| Real-time counters | Atomic commands, bitmaps, HyperLogLog |
 
-## 6. Deployment & scaling best practices
+## 9. Deployment and scaling
 
-- **Scale reads** with replicas; **scale data/writes** by sharding (Redis Cluster hash slots, or client-side consistent hashing for Memcached).
-- **Cap memory + set an eviction policy** (`maxmemory` + `allkeys-lru`/`lfu`); **put TTLs on everything** to bound growth.
-- **HA**: run replicas across **multiple AZs**; use **Sentinel or Cluster** for automatic failover; never a single node in prod.
-- **Avoid big keys and hot keys** — they create imbalance and blocking; split them or add a local cache in front.
-- **Efficiency**: use **pipelining/batching**, **connection pooling**, and avoid `O(n)` commands (`KEYS`) on large datasets.
-- **Know cache vs source-of-truth**: treat the cache as **disposable** unless you deliberately enable Redis persistence + replication as a datastore.
-- **Managed options**: AWS **ElastiCache** (Redis/Memcached), GCP **MemoryStore**, **Redis Enterprise** — offload ops.
-- **Monitor**: hit ratio, memory usage, eviction rate, p99 latency, replication lag.
+- **Scale reads** with replicas. **Scale writes and data** with sharding.
+- **Set a memory limit and an eviction policy** (`maxmemory`, `allkeys-lru` or `lfu`). **Set a TTL on every key.**
+- **HA:** put replicas in **many AZs**. Use **Sentinel or Cluster** for failover. Do not run one node in production.
+- **Avoid big keys and hot keys.** They cause imbalance and blocking. Split them, or add a local cache.
+- **Be efficient:** use pipelining, connection pools, and `SCAN` (not `KEYS`).
+- **A cache is not the source of truth.** Treat it as disposable. Use Redis as a datastore only with persistence and replication.
+- **Managed services:** AWS ElastiCache (Redis or Memcached), GCP Memorystore, Redis Enterprise.
+- **Monitor:** hit ratio, memory, evictions, p99 latency, replication lag.
 
-## 7. One-Paragraph Summary (for quick revision)
+## 10. One-Paragraph Summary (for quick revision)
 
-**Redis** and **Memcached** are the two standard **distributed in-memory KV caches**. **Memcached** is a simple, multi-threaded, no-persistence cache sharded **client-side** (consistent hashing) — great for a huge plain look-aside cache. **Redis** is mostly single-threaded but far richer: **data structures** (sorted sets, hashes, streams), optional **persistence** (RDB/AOF), **replication**, **Sentinel** for automatic failover, and **Cluster** (16,384 hash slots) for horizontal sharding + HA — powering sessions, rate limiting, leaderboards, queues, and real-time analytics, and it's the usual default. **Routing is deterministic** so reads land where writes went: client-side **consistent hashing** (Memcached) or Redis Cluster's `CRC16 mod 16384` slot map with **`MOVED`** redirects (and **hash tags** to co-locate related keys). To deploy at scale: cap memory with an LRU/LFU eviction policy, TTL everything, scale reads with multi-AZ replicas and data with sharding, avoid big/hot keys, use pipelining + pooling, lean on managed services (ElastiCache/MemoryStore), and monitor hit ratio, memory, evictions, and latency.
+**Redis** and **Memcached** are the two standard **distributed in-memory caches**. **Memcached** is simple and multi-threaded. It has no persistence, and the client shards with consistent hashing. **Redis** runs commands on **one thread** with an **event loop**. Each command is atomic and needs no lock. Redis is fast because data is in RAM and the core has no locks. One slow command blocks all clients, so add shards for more cores. Redis also has data structures (sorted sets, hashes, streams), optional persistence (none, replicas, RDB, or AOF `everysec`), replication, **Sentinel** for failover, and **Cluster** (16,384 hash slots) for sharding and HA. Routing is deterministic: Memcached uses client-side consistent hashing. Redis Cluster uses `CRC16 mod 16384` with `MOVED` redirects and hash tags. At scale: set a memory limit and TTLs, add replicas in many AZs, avoid big and hot keys, use pipelining and pools, and monitor hit ratio, evictions, and latency.

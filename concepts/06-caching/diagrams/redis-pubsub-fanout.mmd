@@ -1,0 +1,7 @@
+flowchart LR
+    P1["Publisher A"] -->|"PUBLISH chat:42 hi"| R(("Redis<br/>channel → subscribers"))
+    P2["Publisher B"] -->|"PUBLISH chat:42 yo"| R
+    R -->|"push"| S1["Gateway 1<br/>SUBSCRIBE chat:42"]
+    R -->|"push"| S2["Gateway 2<br/>SUBSCRIBE chat:42"]
+    R -->|"push"| S3["Gateway 3<br/>PSUBSCRIBE chat:*"]
+    R -.->|"no push: not subscribed"| S4["Service D"]

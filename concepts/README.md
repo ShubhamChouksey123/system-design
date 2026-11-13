@@ -7,11 +7,11 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 ## 📊 Progress Tracking
 
-Track your overall concepts: **31 / 55 completed (56%)** *(read + revised)*
+Track your overall concepts: **31 / 56 completed (55%)** *(read + revised)*
 
-- **Written:** 46 / 55 — **84%** *(9 in backlog — the `*(todo)*` rows)*
-- **Read:** 31 / 55 — **56%**
-- **Revised:** 3 / 55 — **5%**
+- **Written:** 47 / 56 — **84%** *(9 in backlog — the `*(todo)*` rows)*
+- **Read:** 31 / 56 — **55%**
+- **Revised:** 3 / 56 — **5%**
 
 > Tick `☐ → ✅` in the table as you go; run `scripts/progress.sh` to refresh these counts.
 
@@ -59,6 +59,7 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | **06 · Caching** | [Caching](./06-caching/caching.md) |  ✅   | ☐ | —             |
 | | [Distributed Caching — Redis & Memcached](./06-caching/redis-and-memcached.md) |  ☐   | ☐ | —             |
 | | ↳ [Redis Sorted Sets (ZSET)](./06-caching/redis-sorted-sets.md) |  ☐   | ☐ | —             |
+| | ↳ [Redis Pub/Sub](./06-caching/redis-pub-sub.md) |  ☐   | ☐ | —             |
 | **07 · Messaging & Events** | [Message Queue](./07-messaging-and-events/message-queue.md) |  ☐   | ☐ | —             |
 | | [Apache Kafka](./07-messaging-and-events/apache-kafka.md) |  ✅   | ✅ | 2026-11-06    |
 | | [Event-Driven Architecture](./07-messaging-and-events/event-driven-architecture.md) |  ☐   | ☐ | —             |
