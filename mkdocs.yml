@@ -124,6 +124,7 @@ nav:
           - gRPC & Protocol Buffers: concepts/04-apis/grpc.md
           - GraphQL API: concepts/04-apis/graphql.md
           - Real-Time Communication — WebSocket & SSE: concepts/04-apis/realtime-communication.md
+          - WebSockets — Deep Dive: concepts/04-apis/websockets.md
           - Webhooks — Reverse APIs: concepts/04-apis/webhooks.md
           - Authentication & Authorization: concepts/04-apis/authentication-and-authorization.md
           - SSO — SAML, OAuth 2.0 & OIDC: concepts/04-apis/oauth-oidc-saml.md

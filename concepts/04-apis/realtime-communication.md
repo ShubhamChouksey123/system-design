@@ -39,7 +39,7 @@ A single long-lived HTTP response the server streams events over (`Content-Type:
 A persistent, **full-duplex** connection: an HTTP request **Upgrades** to the `ws://`/`wss://` protocol, then both sides send messages anytime over one TCP connection.
 
 - **Pros:** true two-way, low overhead per message, low latency. **Cons:** not plain HTTP (needs WebSocket-aware LBs/proxies), stateful connections complicate scaling (sticky routing / a pub-sub backplane like Redis), you handle reconnect/heartbeats.
-- **Use:** chat, multiplayer games, collaborative editing, live trading — anything needing **bidirectional** real-time. Libraries: **Socket.IO**, native WS.
+- **Use:** chat, multiplayer games, collaborative editing, live trading — anything needing **bidirectional** real-time. Libraries: **Socket.IO**, native WS. Scaling, presence and reconnects: [WebSockets deep dive](./websockets.md).
 
 ## 6. Push notifications (when the client is *disconnected*)
 

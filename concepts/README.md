@@ -7,11 +7,11 @@ Each concept is distilled from *System Design Interview – An Insider's Guide* 
 
 ## 📊 Progress Tracking
 
-Track your overall concepts: **31 / 54 completed (57%)** *(read + revised)*
+Track your overall concepts: **31 / 55 completed (56%)** *(read + revised)*
 
-- **Written:** 45 / 54 — **83%** *(9 in backlog — the `*(todo)*` rows)*
-- **Read:** 31 / 54 — **57%**
-- **Revised:** 3 / 54 — **6%**
+- **Written:** 46 / 55 — **84%** *(9 in backlog — the `*(todo)*` rows)*
+- **Read:** 31 / 55 — **56%**
+- **Revised:** 3 / 55 — **5%**
 
 > Tick `☐ → ✅` in the table as you go; run `scripts/progress.sh` to refresh these counts.
 
@@ -39,6 +39,7 @@ Topic sections (numbered folders); read top-to-bottom. **Read** / **Revised**: t
 | | [gRPC](./04-apis/grpc.md) |  ✅   | ☐ | 2026-08-15    |
 | | [GraphQL](./04-apis/graphql.md) |  ✅   | ☐ | 2026-08-15    |
 | | [Real-Time Communication](./04-apis/realtime-communication.md) |  ✅   | ☐ | 2026-08-15    |
+| | ↳ [WebSockets — Deep Dive](./04-apis/websockets.md) |  ☐   | ☐ | —             |
 | | [Webhooks](./04-apis/webhooks.md) |  ✅   | ☐ | 2026-08-15    |
 | | [Authentication & Authorization](./04-apis/authentication-and-authorization.md) |  ✅   | ☐ | 2026-08-15    |
 | | [SSO: SAML, OAuth 2.0 & OIDC](./04-apis/oauth-oidc-saml.md) |  ✅   | ☐ | 2026-08-15    |
