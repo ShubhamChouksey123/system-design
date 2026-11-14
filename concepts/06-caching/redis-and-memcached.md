@@ -34,7 +34,11 @@ Many clients connect at the same time. Redis runs their commands on **one thread
 | **Simple protocol** | RESP is easy to parse. Pipelining sends many commands in one round trip. |
 | **Disk off the hot path** | Writes go to RAM first. Disk writes happen in the background. |
 
-One node handles about 100K operations per second at sub-millisecond latency. The network is usually the limit, not the CPU. Trade-off: RAM size limits the data, and each shard uses one core.
+**One node (rule of thumb, not a guarantee):**
+
+- **Throughput:** about **100K queries/s** for simple `GET`/`SET`, with sub-millisecond latency. Pipelining can reach about **1M/s**. The network is usually the limit, not the CPU.
+- **Storage:** limited by RAM. Typical size is **10–100 GB**. Fill only 60–70% of RAM, because `fork` snapshots and fragmentation need extra memory.
+- **Decision:** above this, add replicas (more reads) or shards (more writes and data). Each shard uses one core.
 
 ## 4. Redis vs Memcached
 
